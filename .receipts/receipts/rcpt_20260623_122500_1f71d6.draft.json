@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_122500_1f71d6",
+  "created_at": "2026-06-23T12:25:00.119Z",
+  "updated_at": "2026-06-23T12:25:01.655Z",
+  "status": "draft",
+  "claim": {
+    "summary": "Fix Receipts OpenClaw plugin install blocker",
+    "details": "OpenClaw blocked the receipts plugin install because openclaw/plugin.js imported child_process. Reworked the runtime plugin to write receipts in-process with fs/path/crypto plus schema and Markdown modules, removing subprocess execution from the plugin adapter. Documented required hooks.allowConversationAccess=true policy and added tests for the safe writer."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {},
+  "changes": [],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stderr.log",
+      "created_at": "2026-06-23T12:25:01.635Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "command",
+      "label": "OpenClaw plugin install verification",
+      "created_at": "2026-06-23T12:25:01.654Z",
+      "command": "openclaw plugins install /Users/beauxwalton/projects/receipts --force",
+      "exit_code": 0,
+      "note": "Verified install now succeeds without --dangerously-force-unsafe-install; remaining runtime diagnostic requires explicit hooks.allowConversationAccess=true for agent_end conversation access."
+    }
+  ],
+  "verification": {
+    "summary": "2 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      },
+      {
+        "kind": "command",
+        "label": "OpenClaw plugin install verification",
+        "status": "passed",
+        "evidence_id": "ev_002",
+        "command": "openclaw plugins install /Users/beauxwalton/projects/receipts --force",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "unknown",
+    "notes": [],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Review the receipt and supporting evidence."
+}

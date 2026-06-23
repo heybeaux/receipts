@@ -89,6 +89,20 @@ assert(openclawReceipt.integrity.receipt_payload_sha256);
 assert.equal(receiptsPlugin.__private.hasToolEvidence([{ role: 'tool', content: 'ok' }]), true);
 assert.equal(receiptsPlugin.__private.shouldCapture({ success: true, messages: [{ role: 'assistant', content: 'hi' }] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), false);
 assert.equal(receiptsPlugin.__private.shouldCapture({ success: false, messages: [] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), true);
+const pluginWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-plugin-'));
+const pluginResult = receiptsPlugin.__private.writeOpenClawReceipt({
+  event: {
+    runId: 'run_plugin',
+    success: true,
+    messages: [{ role: 'tool', toolName: 'exec', content: 'ok' }, { role: 'assistant', content: 'Done.' }],
+  },
+  ctx: { agentId: 'nori', sessionId: 'sess_plugin', sessionKey: 'agent:nori:test' },
+  workspaceDir: pluginWorkdir,
+});
+assert(pluginResult.receipt.id.startsWith('rcpt_'));
+assert(pluginResult.receipt.integrations.openclaw.run_id === 'run_plugin');
+assert(pluginResult.receipt.workspace.git_error.includes('safe in-process'));
+assert(readFileSync(pluginResult.receiptPath, 'utf8').includes('openclaw-agent-end'));
 
 console.log('Unit tests passed');
 

@@ -70,6 +70,23 @@ openclaw plugins install /path/to/receipts
 openclaw plugins enable receipts
 ```
 
+Because `agent_end` exposes conversation messages, OpenClaw requires an explicit conversation-access opt-in for this non-bundled plugin:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "receipts": {
+        "enabled": true,
+        "hooks": {
+          "allowConversationAccess": true
+        }
+      }
+    }
+  }
+}
+```
+
 Default behavior captures failed turns and successful turns that include tool evidence. Configure under `plugins.entries.receipts.config`:
 
 ```json
@@ -81,7 +98,7 @@ Default behavior captures failed turns and successful turns that include tool ev
 }
 ```
 
-The adapter writes receipts into the agent turn workspace by default. It records OpenClaw run/session metadata under `integrations.openclaw` and stores a bounded `openclaw-agent-end.json` evidence artifact.
+The adapter writes receipts into the agent turn workspace by default. It records OpenClaw run/session metadata under `integrations.openclaw` and stores a bounded `openclaw-agent-end.json` evidence artifact. The runtime plugin writes receipts in-process and does not shell out, so OpenClaw's dangerous-code scanner can install it without `--dangerously-force-unsafe-install`.
 
 For tests or custom integrations, the CLI can convert an exported OpenClaw `agent_end` event directly:
 

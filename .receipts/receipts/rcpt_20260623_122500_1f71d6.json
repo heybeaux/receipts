@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_122500_1f71d6",
+  "created_at": "2026-06-23T12:25:00.119Z",
+  "updated_at": "2026-06-23T12:25:01.674Z",
+  "status": "needs-review",
+  "claim": {
+    "summary": "Fix Receipts OpenClaw plugin install blocker",
+    "details": "OpenClaw blocked the receipts plugin install because openclaw/plugin.js imported child_process. Reworked the runtime plugin to write receipts in-process with fs/path/crypto plus schema and Markdown modules, removing subprocess execution from the plugin adapter. Documented required hooks.allowConversationAccess=true policy and added tests for the safe writer."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "b87fabc555a72cad29732e53e116bbf3f8a71109",
+    "commit_after": "b87fabc555a72cad29732e53e116bbf3f8a71109",
+    "git_status": "M .receipts/active.json\n M README.md\n M openclaw.plugin.json\n M openclaw/plugin.js\n M test/unit.js\n?? .receipts/artifacts/rcpt_20260623_122500_1f71d6/\n?? .receipts/receipts/rcpt_20260623_122500_1f71d6.draft.json",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "openclaw.plugin.json",
+      "kind": "modified",
+      "summary": "M openclaw.plugin.json"
+    },
+    {
+      "path": "openclaw/plugin.js",
+      "kind": "modified",
+      "summary": "M openclaw/plugin.js"
+    },
+    {
+      "path": "test/unit.js",
+      "kind": "modified",
+      "summary": "M test/unit.js"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/",
+      "kind": "added",
+      "summary": "?? .receipts/artifacts/rcpt_20260623_122500_1f71d6/"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_122500_1f71d6.draft.json",
+      "kind": "added",
+      "summary": "?? .receipts/receipts/rcpt_20260623_122500_1f71d6.draft.json"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stderr.log",
+      "created_at": "2026-06-23T12:25:01.635Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "command",
+      "label": "OpenClaw plugin install verification",
+      "created_at": "2026-06-23T12:25:01.654Z",
+      "command": "openclaw plugins install /Users/beauxwalton/projects/receipts --force",
+      "exit_code": 0,
+      "note": "Verified install now succeeds without --dangerously-force-unsafe-install; remaining runtime diagnostic requires explicit hooks.allowConversationAccess=true for agent_end conversation access."
+    },
+    {
+      "id": "ev_003",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/git.diff",
+      "created_at": "2026-06-23T12:25:01.712Z"
+    }
+  ],
+  "verification": {
+    "summary": "2 passed; 1 not run",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      },
+      {
+        "kind": "command",
+        "label": "OpenClaw plugin install verification",
+        "status": "passed",
+        "evidence_id": "ev_002",
+        "command": "openclaw plugins install /Users/beauxwalton/projects/receipts --force",
+        "exit_code": 0
+      },
+      {
+        "kind": "manual",
+        "label": "Live gateway restart with receipts hook active and allowConversationAccess=true",
+        "status": "not-run",
+        "explanation": "Recorded during receipt completion."
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "The plugin installs safely now, but OpenClaw will not activate the agent_end hook until the operator explicitly sets plugins.entries.receipts.hooks.allowConversationAccess=true."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Commit/push the install fix; then decide whether to patch live OpenClaw config to allow conversation access and restart.",
+  "completed_at": "2026-06-23T12:25:01.674Z",
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "617c8f589102a1cf0ef28474c5f6869fcde263a52b1d51e6e28370716fd90507",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stdout.log",
+        "sha256": "687494df30eda3ca97c70a4058a7bb9786139221772014f2f9955994de8ff4be"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/command-001.stderr.log",
+        "sha256": "5bc31df123a2e521acdd2c0d9477b367feec506471a91065d0a6b32c09089ed5"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_122500_1f71d6/git.diff",
+        "sha256": "ef1bdaf43ad8f7cf277afd8f60c43dbae9c08557baca8621058d75fb6cc3a59f"
+      }
+    ]
+  }
+}
