@@ -1,5 +1,5 @@
 {
-  "name": "receipts",
+  "name": "@beaux-riel/receipts",
   "version": "0.1.0",
   "description": "Verifiable proof-of-work for AI teams.",
   "main": "src/cli.js",
