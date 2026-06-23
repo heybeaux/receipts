@@ -63,3 +63,11 @@
 - [x] 7.2 Add GitHub PR comment integration adapter. (`receipts github comment` via `gh`, with `--dry-run`.)
 - [x] 7.3 Add OpenClaw task-completion receipt hook. (`openclaw/plugin.js` registers `agent_end`; `receipts openclaw agent-end` converts hook payloads.)
 - [x] 7.4 Add content hashing for completed receipts. (SHA-256 payload + artifact hashes in `integrity`.)
+
+## 8. OpenClaw Hook Refinements
+
+Discovered during the first live `agent_end` receipt (`rcpt_20260623_125717_3b8b89`),
+where the claim collapsed to a trivial last line ("done") and `actor.model` was null.
+
+- [ ] 8.1 Improve claim extraction for OpenClaw receipts. Prefer the originating user request/task intent and a tool-action summary over the trailing assistant line; avoid trivial claims like "done". Skip or down-rank empty/low-signal completions.
+- [ ] 8.2 Resolve actor model metadata for OpenClaw receipts. Populate `actor.model` from a reliable source (hook `ctx`, resolved session model, or `llm_output`/`model_call_*` correlation) instead of leaving it null when `ctx.modelId` is absent.
