@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_115940_9ef35f",
+  "created_at": "2026-06-23T11:59:40.857Z",
+  "updated_at": "2026-06-23T11:59:42.370Z",
+  "status": "draft",
+  "claim": {
+    "summary": "Add OpenClaw task-completion receipt hook",
+    "details": "Implemented an optional OpenClaw plugin adapter that registers the typed agent_end hook and generates local Receipts via a new 'receipts openclaw agent-end' CLI command. Added plugin manifest/config, event payload conversion, OpenClaw metadata/evidence capture, tests, README docs, and OpenSpec task completion."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {},
+  "changes": [],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stderr.log",
+      "created_at": "2026-06-23T11:59:42.350Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "hook verification note",
+      "created_at": "2026-06-23T11:59:42.369Z",
+      "note": "OpenClaw hook path tested through synthetic agent_end payload and plugin capture heuristics; live gateway plugin install not performed in this sprint."
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "unknown",
+    "notes": [],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Review the receipt and supporting evidence."
+}

@@ -21,5 +21,10 @@
   "devDependencies": {
     "@fission-ai/openspec": "^1.4.1"
   },
-  "private": true
+  "private": true,
+  "openclaw": {
+    "extensions": [
+      "./openclaw/plugin.js"
+    ]
+  }
 }

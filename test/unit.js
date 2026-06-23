@@ -1,11 +1,12 @@
 const assert = require('node:assert/strict');
-const { mkdtempSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, readFileSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const { renderMarkdown } = require('../src/render-markdown');
 const { validateReceipt } = require('../src/schema');
+const receiptsPlugin = require('../openclaw/plugin.js');
 
 const sampleReceipt = {
   schema_version: '0.1.0',
@@ -43,6 +44,51 @@ spawnOk(['done', '--next', 'Post to PR.']);
 const dryRun = spawnOk(['github', 'comment', '--pr', '123', '--repo', 'heybeaux/receipts', '--dry-run']);
 assert(dryRun.stdout.includes('Would comment on heybeaux/receipts#123'));
 assert(dryRun.stdout.includes('# Receipt: GitHub dry run receipt'));
+
+const openclawWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-openclaw-'));
+const eventPath = join(openclawWorkdir, 'agent-end.json');
+writeFileSync(eventPath, JSON.stringify({
+  event: {
+    runId: 'run_123',
+    success: true,
+    durationMs: 42,
+    messages: [
+      { role: 'user', content: 'Please do the thing.' },
+      { role: 'tool', toolName: 'exec', content: 'tests passed' },
+      { role: 'assistant', content: 'Implemented the thing and tests pass.' },
+    ],
+  },
+  ctx: {
+    agentId: 'nori',
+    sessionId: 'sess_123',
+    sessionKey: 'agent:nori:main',
+    runId: 'run_123',
+    workspaceDir: openclawWorkdir,
+    modelProviderId: 'sakana',
+    modelId: 'fugu',
+  },
+}, null, 2));
+const openclawRun = spawnSync(process.execPath, [cli, 'openclaw', 'agent-end', '--event', eventPath, '--workspace-dir', openclawWorkdir], {
+  cwd: openclawWorkdir,
+  encoding: 'utf8',
+});
+if (openclawRun.status !== 0) {
+  console.error(openclawRun.stdout);
+  console.error(openclawRun.stderr);
+  process.exit(1);
+}
+assert(openclawRun.stdout.includes('OpenClaw receipt completed:'));
+const openclawJsonMatch = openclawRun.stdout.match(/JSON: (.+)/);
+assert(openclawJsonMatch);
+const openclawReceipt = JSON.parse(readFileSync(join(openclawWorkdir, openclawJsonMatch[1].trim()), 'utf8'));
+assert.equal(openclawReceipt.task.source, 'openclaw');
+assert.equal(openclawReceipt.integrations.openclaw.run_id, 'run_123');
+assert(openclawReceipt.evidence.some((entry) => entry.label === 'OpenClaw agent_end event'));
+assert(openclawReceipt.integrity.receipt_payload_sha256);
+
+assert.equal(receiptsPlugin.__private.hasToolEvidence([{ role: 'tool', content: 'ok' }]), true);
+assert.equal(receiptsPlugin.__private.shouldCapture({ success: true, messages: [{ role: 'assistant', content: 'hi' }] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), false);
+assert.equal(receiptsPlugin.__private.shouldCapture({ success: false, messages: [] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), true);
 
 console.log('Unit tests passed');
 

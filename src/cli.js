@@ -37,6 +37,9 @@ function main(args = process.argv.slice(2)) {
       case 'github':
         github(args);
         break;
+      case 'openclaw':
+        openclaw(args);
+        break;
       case 'help':
       case '--help':
       case '-h':
@@ -70,6 +73,7 @@ Usage:
   receipts run -- <command> [args...]
   receipts done [--risk <note>] [--not-run <check>] [--next <action>] [--self-verified]
   receipts github comment --pr <number> [--repo <owner/repo>] [--receipt <id>] [--dry-run]
+  receipts openclaw agent-end --event <event.json> [--workspace-dir <path>] [--dry-run]
 
 Examples:
   receipts init
@@ -78,6 +82,7 @@ Examples:
   receipts evidence add --file screenshots/login.png --kind screenshot --label "Login smoke test"
   receipts done --risk "OAuth provider edge cases not manually tested." --not-run "Browser OAuth smoke test" --next "Review diff and run browser smoke test."
   receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
+  receipts openclaw agent-end --event /tmp/openclaw-agent-end.json --workspace-dir .
 `);
 }
 
@@ -497,6 +502,221 @@ function readDefaultDoneStatus() {
   return config.default_status_on_done || 'needs-review';
 }
 
+
+
+function openclaw(args) {
+  const subcommand = args.shift();
+  if (subcommand !== 'agent-end') fail('Only `receipts openclaw agent-end` is supported right now.', 64);
+  const parsed = parseOptions(args, {
+    string: ['event', 'workspace-dir'],
+    boolean: ['dry-run'],
+  });
+  if (!parsed.options.event) fail('OpenClaw agent_end event JSON is required. Example: receipts openclaw agent-end --event event.json', 64);
+  if (parsed.options['workspace-dir']) process.chdir(resolve(parsed.options['workspace-dir']));
+  ensureInitialized();
+
+  const eventPath = resolve(parsed.options.event);
+  const payload = readJson(eventPath);
+  const receipt = createOpenClawAgentEndReceipt(payload, eventPath);
+  collectWorkspaceEvidence(receipt);
+  updateVerificationSummary(receipt);
+  attachIntegrity(receipt);
+  assertValidReceipt(receipt);
+
+  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
+  const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receipt.id}.md`);
+  if (parsed.options['dry-run']) {
+    console.log(JSON.stringify(receipt, null, 2));
+    return;
+  }
+  writeJson(receiptPath, receipt);
+  writeFileSync(markdownPath, renderMarkdown(receipt));
+  writeJson(pathInReceipts(ACTIVE_FILE), { id: null, completed_id: receipt.id, updated_at: receipt.updated_at });
+  console.log(`OpenClaw receipt completed: ${receipt.id}`);
+  console.log(`JSON: ${normalizeUserPath(receiptPath)}`);
+  console.log(`Markdown: ${normalizeUserPath(markdownPath)}`);
+}
+
+function createOpenClawAgentEndReceipt(payload, sourceEventPath) {
+  const event = isRecord(payload.event) ? payload.event : payload;
+  const ctx = isRecord(payload.ctx) ? payload.ctx : {};
+  const now = new Date().toISOString();
+  const id = createReceiptId();
+  const messages = Array.isArray(event.messages) ? event.messages : [];
+  const lastAssistant = findLastAssistantText(messages);
+  const claimSummary = summarizeOpenClawClaim({ event, ctx, lastAssistant });
+  const artifactDir = artifactDirFor(id);
+  ensureDir(artifactDir);
+  const artifactPath = join(artifactDir, 'openclaw-agent-end.json');
+  const sanitized = sanitizeOpenClawPayload({ event, ctx });
+  writeJson(artifactPath, sanitized);
+
+  const success = event.success !== false;
+  const runId = stringOrNull(event.runId) || stringOrNull(ctx.runId);
+  const sessionKey = stringOrNull(ctx.sessionKey);
+  const sessionId = stringOrNull(ctx.sessionId);
+  const agentId = stringOrNull(ctx.agentId) || 'unknown';
+  const model = [stringOrNull(ctx.modelProviderId), stringOrNull(ctx.modelId)].filter(Boolean).join('/') || stringOrNull(ctx.modelId) || null;
+
+  return {
+    schema_version: SCHEMA_VERSION,
+    id,
+    created_at: now,
+    updated_at: now,
+    completed_at: now,
+    status: success ? 'needs-review' : 'needs-review',
+    claim: {
+      summary: claimSummary,
+      details: lastAssistant || (success ? 'OpenClaw agent turn completed.' : `OpenClaw agent turn failed: ${stringOrNull(event.error) || 'unknown error'}`),
+    },
+    actor: {
+      type: 'agent',
+      id: agentId,
+      model,
+    },
+    task: {
+      source: 'openclaw',
+      id: runId,
+      url: null,
+    },
+    workspace: {
+      source: 'openclaw-agent-end',
+      workspace_dir: process.cwd(),
+      session_key: sessionKey,
+      session_id: sessionId,
+      run_id: runId,
+      duration_ms: typeof event.durationMs === 'number' ? event.durationMs : undefined,
+    },
+    changes: [],
+    evidence: [
+      {
+        id: 'ev_001',
+        kind: 'log',
+        label: 'OpenClaw agent_end event',
+        path: normalizeUserPath(artifactPath),
+        source: normalizeUserPath(sourceEventPath),
+        created_at: now,
+      },
+    ],
+    verification: {
+      summary: 'OpenClaw turn completion recorded; independent verification still requires review.',
+      checks: [
+        {
+          kind: 'openclaw-agent-end',
+          label: 'OpenClaw agent turn completed',
+          status: success ? 'passed' : 'failed',
+          evidence_id: 'ev_001',
+          explanation: success ? 'OpenClaw emitted agent_end with success=true.' : stringOrNull(event.error) || 'OpenClaw emitted agent_end with success=false.',
+        },
+      ],
+    },
+    risk: {
+      level: success ? 'medium' : 'high',
+      notes: [
+        'OpenClaw completion proves the agent produced a final turn, not that every task claim is semantically correct.',
+      ],
+      assumptions: [
+        'Agent transcript/event metadata is treated as evidence of observed runtime behavior, not human approval.',
+      ],
+      rollback: null,
+    },
+    integrations: {
+      openclaw: {
+        hook: 'agent_end',
+        run_id: runId,
+        session_key: sessionKey,
+        session_id: sessionId,
+        message_provider: stringOrNull(ctx.messageProvider),
+        channel_id: stringOrNull(ctx.channelId),
+      },
+    },
+    recommended_next_action: success
+      ? 'Review the receipt, especially git diff and verification gaps, before treating the task as approved.'
+      : 'Inspect the OpenClaw error and rerun or repair the failed task before approval.',
+  };
+}
+
+function summarizeOpenClawClaim({ event, ctx, lastAssistant }) {
+  if (event.success === false) return `OpenClaw agent turn failed${event.error ? `: ${truncate(String(event.error), 96)}` : ''}`;
+  const agentId = stringOrNull(ctx.agentId) || 'agent';
+  if (lastAssistant) return `OpenClaw ${agentId} completed: ${truncate(lastAssistant.replace(/\s+/g, ' '), 120)}`;
+  return `OpenClaw ${agentId} completed an agent turn`;
+}
+
+function sanitizeOpenClawPayload({ event, ctx }) {
+  return {
+    event: {
+      runId: stringOrNull(event.runId),
+      success: event.success !== false,
+      error: stringOrNull(event.error),
+      durationMs: typeof event.durationMs === 'number' ? event.durationMs : undefined,
+      messages: Array.isArray(event.messages) ? event.messages.map(sanitizeMessage).slice(-20) : [],
+    },
+    ctx: {
+      agentId: stringOrNull(ctx.agentId),
+      sessionId: stringOrNull(ctx.sessionId),
+      sessionKey: stringOrNull(ctx.sessionKey),
+      runId: stringOrNull(ctx.runId),
+      workspaceDir: stringOrNull(ctx.workspaceDir),
+      modelProviderId: stringOrNull(ctx.modelProviderId),
+      modelId: stringOrNull(ctx.modelId),
+      messageProvider: stringOrNull(ctx.messageProvider),
+      channelId: stringOrNull(ctx.channelId),
+    },
+  };
+}
+
+function sanitizeMessage(message) {
+  if (!isRecord(message)) return { type: typeof message, text: truncate(String(message), 1000) };
+  const role = stringOrNull(message.role) || stringOrNull(message.type) || 'unknown';
+  const text = extractMessageText(message);
+  return {
+    role,
+    type: stringOrNull(message.type),
+    toolName: stringOrNull(message.toolName) || stringOrNull(message.name),
+    content: text ? truncate(text, 2000) : undefined,
+  };
+}
+
+function findLastAssistantText(messages) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (!isRecord(message)) continue;
+    const role = stringOrNull(message.role) || stringOrNull(message.type);
+    if (role && !/assistant|agent|message_end|output/i.test(role)) continue;
+    const text = extractMessageText(message);
+    if (text) return truncate(text.trim(), 2000);
+  }
+  return null;
+}
+
+function extractMessageText(message) {
+  for (const key of ['content', 'text', 'message']) {
+    const value = message[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  const content = message.content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => isRecord(part) && typeof part.text === 'string' ? part.text : '')
+      .filter(Boolean)
+      .join('\n')
+      .trim() || null;
+  }
+  return null;
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function stringOrNull(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function truncate(text, max) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
 
 function github(args) {
   ensureInitialized();

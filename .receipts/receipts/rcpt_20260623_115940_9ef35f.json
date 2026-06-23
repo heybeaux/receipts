@@ -1,0 +1,156 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_115940_9ef35f",
+  "created_at": "2026-06-23T11:59:40.857Z",
+  "updated_at": "2026-06-23T11:59:42.389Z",
+  "status": "needs-review",
+  "claim": {
+    "summary": "Add OpenClaw task-completion receipt hook",
+    "details": "Implemented an optional OpenClaw plugin adapter that registers the typed agent_end hook and generates local Receipts via a new 'receipts openclaw agent-end' CLI command. Added plugin manifest/config, event payload conversion, OpenClaw metadata/evidence capture, tests, README docs, and OpenSpec task completion."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "87688872f55f1ae8ba265585b3f23b449c43264a",
+    "commit_after": "87688872f55f1ae8ba265585b3f23b449c43264a",
+    "git_status": "M .receipts/active.json\n M README.md\n M openspec/changes/define-receipts-v0/tasks.md\n M package.json\n M src/cli.js\n M test/unit.js\n?? .receipts/artifacts/rcpt_20260623_115940_9ef35f/\n?? .receipts/receipts/rcpt_20260623_115940_9ef35f.draft.json\n?? openclaw.plugin.json\n?? openclaw/",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v0/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v0/tasks.md"
+    },
+    {
+      "path": "package.json",
+      "kind": "modified",
+      "summary": "M package.json"
+    },
+    {
+      "path": "src/cli.js",
+      "kind": "modified",
+      "summary": "M src/cli.js"
+    },
+    {
+      "path": "test/unit.js",
+      "kind": "modified",
+      "summary": "M test/unit.js"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/",
+      "kind": "added",
+      "summary": "?? .receipts/artifacts/rcpt_20260623_115940_9ef35f/"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_115940_9ef35f.draft.json",
+      "kind": "added",
+      "summary": "?? .receipts/receipts/rcpt_20260623_115940_9ef35f.draft.json"
+    },
+    {
+      "path": "openclaw.plugin.json",
+      "kind": "added",
+      "summary": "?? openclaw.plugin.json"
+    },
+    {
+      "path": "openclaw/",
+      "kind": "added",
+      "summary": "?? openclaw/"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stderr.log",
+      "created_at": "2026-06-23T11:59:42.350Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "hook verification note",
+      "created_at": "2026-06-23T11:59:42.369Z",
+      "note": "OpenClaw hook path tested through synthetic agent_end payload and plugin capture heuristics; live gateway plugin install not performed in this sprint."
+    },
+    {
+      "id": "ev_003",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/git.diff",
+      "created_at": "2026-06-23T11:59:42.428Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed; 1 not run",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      },
+      {
+        "kind": "manual",
+        "label": "Live OpenClaw gateway plugin install/restart verification",
+        "status": "not-run",
+        "explanation": "Recorded during receipt completion."
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "The OpenClaw plugin is implemented and unit-tested against synthetic hook payloads, but not installed into the live gateway during this sprint."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Install/enable the receipts plugin in OpenClaw config when ready, then run one real agent turn to verify a live .receipts artifact is generated.",
+  "completed_at": "2026-06-23T11:59:42.389Z",
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "73938625ae12baea5ea676f489b2afba53f62a83e2c643636ab8256678a0a3ed",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stdout.log",
+        "sha256": "687494df30eda3ca97c70a4058a7bb9786139221772014f2f9955994de8ff4be"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/command-001.stderr.log",
+        "sha256": "5bc31df123a2e521acdd2c0d9477b367feec506471a91065d0a6b32c09089ed5"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_115940_9ef35f/git.diff",
+        "sha256": "9a679c80defcb6ae281da3118f7a2becf2990830f761c0b86f9e5cfcb2cee806"
+      }
+    ]
+  }
+}

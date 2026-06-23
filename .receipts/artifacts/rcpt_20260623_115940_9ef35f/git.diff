@@ -1,0 +1,407 @@
+diff --git a/.receipts/active.json b/.receipts/active.json
+index eb40b01..2264443 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_114159_a11c5d",
+-  "updated_at": "2026-06-23T11:42:01.011Z"
++  "id": "rcpt_20260623_115940_9ef35f",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_115940_9ef35f.draft.json",
++  "updated_at": "2026-06-23T11:59:42.370Z"
+ }
+diff --git a/README.md b/README.md
+index 14a7f71..e497393 100644
+--- a/README.md
++++ b/README.md
+@@ -59,9 +59,39 @@ receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
+ 
+ With no `--receipt`, it uses the most recently completed receipt. With no `--repo`, it infers the repo from `origin`.
+ 
++### OpenClaw task-completion hook
++
++Receipts ships an optional OpenClaw plugin adapter. When enabled, it listens to OpenClaw's `agent_end` lifecycle hook and generates a local receipt from completed agent turns.
++
++Install from this checkout:
++
++```bash
++openclaw plugins install /path/to/receipts
++openclaw plugins enable receipts
++```
++
++Default behavior captures failed turns and successful turns that include tool evidence. Configure under `plugins.entries.receipts.config`:
++
++```json
++{
++  "captureMode": "tool-runs",
++  "includeFailed": true,
++  "workspaceDir": "/optional/fixed/output/workspace",
++  "dryRun": false
++}
++```
++
++The adapter writes receipts into the agent turn workspace by default. It records OpenClaw run/session metadata under `integrations.openclaw` and stores a bounded `openclaw-agent-end.json` evidence artifact.
++
++For tests or custom integrations, the CLI can convert an exported OpenClaw `agent_end` event directly:
++
++```bash
++receipts openclaw agent-end --event /tmp/agent-end.json --workspace-dir .
++```
++
+ ### Integrity
+ 
+-On `done`, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
++On `done` and OpenClaw hook completion, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
+ 
+ ## Architecture
+ 
+diff --git a/openspec/changes/define-receipts-v0/tasks.md b/openspec/changes/define-receipts-v0/tasks.md
+index d0cc6b6..2c72bc6 100644
+--- a/openspec/changes/define-receipts-v0/tasks.md
++++ b/openspec/changes/define-receipts-v0/tasks.md
+@@ -61,5 +61,5 @@
+ 
+ - [x] 7.1 Extract schema/renderer into modules with unit tests. (`src/` modules + `test/unit.js`, JSON Schema in `schemas/`.)
+ - [x] 7.2 Add GitHub PR comment integration adapter. (`receipts github comment` via `gh`, with `--dry-run`.)
+-- [ ] 7.3 Add OpenClaw task-completion receipt hook.
++- [x] 7.3 Add OpenClaw task-completion receipt hook. (`openclaw/plugin.js` registers `agent_end`; `receipts openclaw agent-end` converts hook payloads.)
+ - [x] 7.4 Add content hashing for completed receipts. (SHA-256 payload + artifact hashes in `integrity`.)
+diff --git a/package.json b/package.json
+index 2125e8e..ef02815 100644
+--- a/package.json
++++ b/package.json
+@@ -21,5 +21,10 @@
+   "devDependencies": {
+     "@fission-ai/openspec": "^1.4.1"
+   },
+-  "private": true
++  "private": true,
++  "openclaw": {
++    "extensions": [
++      "./openclaw/plugin.js"
++    ]
++  }
+ }
+diff --git a/src/cli.js b/src/cli.js
+index 9351de9..2c6a798 100644
+--- a/src/cli.js
++++ b/src/cli.js
+@@ -37,6 +37,9 @@ function main(args = process.argv.slice(2)) {
+       case 'github':
+         github(args);
+         break;
++      case 'openclaw':
++        openclaw(args);
++        break;
+       case 'help':
+       case '--help':
+       case '-h':
+@@ -70,6 +73,7 @@ Usage:
+   receipts run -- <command> [args...]
+   receipts done [--risk <note>] [--not-run <check>] [--next <action>] [--self-verified]
+   receipts github comment --pr <number> [--repo <owner/repo>] [--receipt <id>] [--dry-run]
++  receipts openclaw agent-end --event <event.json> [--workspace-dir <path>] [--dry-run]
+ 
+ Examples:
+   receipts init
+@@ -78,6 +82,7 @@ Examples:
+   receipts evidence add --file screenshots/login.png --kind screenshot --label "Login smoke test"
+   receipts done --risk "OAuth provider edge cases not manually tested." --not-run "Browser OAuth smoke test" --next "Review diff and run browser smoke test."
+   receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
++  receipts openclaw agent-end --event /tmp/openclaw-agent-end.json --workspace-dir .
+ `);
+ }
+ 
+@@ -498,6 +503,221 @@ function readDefaultDoneStatus() {
+ }
+ 
+ 
++
++function openclaw(args) {
++  const subcommand = args.shift();
++  if (subcommand !== 'agent-end') fail('Only `receipts openclaw agent-end` is supported right now.', 64);
++  const parsed = parseOptions(args, {
++    string: ['event', 'workspace-dir'],
++    boolean: ['dry-run'],
++  });
++  if (!parsed.options.event) fail('OpenClaw agent_end event JSON is required. Example: receipts openclaw agent-end --event event.json', 64);
++  if (parsed.options['workspace-dir']) process.chdir(resolve(parsed.options['workspace-dir']));
++  ensureInitialized();
++
++  const eventPath = resolve(parsed.options.event);
++  const payload = readJson(eventPath);
++  const receipt = createOpenClawAgentEndReceipt(payload, eventPath);
++  collectWorkspaceEvidence(receipt);
++  updateVerificationSummary(receipt);
++  attachIntegrity(receipt);
++  assertValidReceipt(receipt);
++
++  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
++  const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receipt.id}.md`);
++  if (parsed.options['dry-run']) {
++    console.log(JSON.stringify(receipt, null, 2));
++    return;
++  }
++  writeJson(receiptPath, receipt);
++  writeFileSync(markdownPath, renderMarkdown(receipt));
++  writeJson(pathInReceipts(ACTIVE_FILE), { id: null, completed_id: receipt.id, updated_at: receipt.updated_at });
++  console.log(`OpenClaw receipt completed: ${receipt.id}`);
++  console.log(`JSON: ${normalizeUserPath(receiptPath)}`);
++  console.log(`Markdown: ${normalizeUserPath(markdownPath)}`);
++}
++
++function createOpenClawAgentEndReceipt(payload, sourceEventPath) {
++  const event = isRecord(payload.event) ? payload.event : payload;
++  const ctx = isRecord(payload.ctx) ? payload.ctx : {};
++  const now = new Date().toISOString();
++  const id = createReceiptId();
++  const messages = Array.isArray(event.messages) ? event.messages : [];
++  const lastAssistant = findLastAssistantText(messages);
++  const claimSummary = summarizeOpenClawClaim({ event, ctx, lastAssistant });
++  const artifactDir = artifactDirFor(id);
++  ensureDir(artifactDir);
++  const artifactPath = join(artifactDir, 'openclaw-agent-end.json');
++  const sanitized = sanitizeOpenClawPayload({ event, ctx });
++  writeJson(artifactPath, sanitized);
++
++  const success = event.success !== false;
++  const runId = stringOrNull(event.runId) || stringOrNull(ctx.runId);
++  const sessionKey = stringOrNull(ctx.sessionKey);
++  const sessionId = stringOrNull(ctx.sessionId);
++  const agentId = stringOrNull(ctx.agentId) || 'unknown';
++  const model = [stringOrNull(ctx.modelProviderId), stringOrNull(ctx.modelId)].filter(Boolean).join('/') || stringOrNull(ctx.modelId) || null;
++
++  return {
++    schema_version: SCHEMA_VERSION,
++    id,
++    created_at: now,
++    updated_at: now,
++    completed_at: now,
++    status: success ? 'needs-review' : 'needs-review',
++    claim: {
++      summary: claimSummary,
++      details: lastAssistant || (success ? 'OpenClaw agent turn completed.' : `OpenClaw agent turn failed: ${stringOrNull(event.error) || 'unknown error'}`),
++    },
++    actor: {
++      type: 'agent',
++      id: agentId,
++      model,
++    },
++    task: {
++      source: 'openclaw',
++      id: runId,
++      url: null,
++    },
++    workspace: {
++      source: 'openclaw-agent-end',
++      workspace_dir: process.cwd(),
++      session_key: sessionKey,
++      session_id: sessionId,
++      run_id: runId,
++      duration_ms: typeof event.durationMs === 'number' ? event.durationMs : undefined,
++    },
++    changes: [],
++    evidence: [
++      {
++        id: 'ev_001',
++        kind: 'log',
++        label: 'OpenClaw agent_end event',
++        path: normalizeUserPath(artifactPath),
++        source: normalizeUserPath(sourceEventPath),
++        created_at: now,
++      },
++    ],
++    verification: {
++      summary: 'OpenClaw turn completion recorded; independent verification still requires review.',
++      checks: [
++        {
++          kind: 'openclaw-agent-end',
++          label: 'OpenClaw agent turn completed',
++          status: success ? 'passed' : 'failed',
++          evidence_id: 'ev_001',
++          explanation: success ? 'OpenClaw emitted agent_end with success=true.' : stringOrNull(event.error) || 'OpenClaw emitted agent_end with success=false.',
++        },
++      ],
++    },
++    risk: {
++      level: success ? 'medium' : 'high',
++      notes: [
++        'OpenClaw completion proves the agent produced a final turn, not that every task claim is semantically correct.',
++      ],
++      assumptions: [
++        'Agent transcript/event metadata is treated as evidence of observed runtime behavior, not human approval.',
++      ],
++      rollback: null,
++    },
++    integrations: {
++      openclaw: {
++        hook: 'agent_end',
++        run_id: runId,
++        session_key: sessionKey,
++        session_id: sessionId,
++        message_provider: stringOrNull(ctx.messageProvider),
++        channel_id: stringOrNull(ctx.channelId),
++      },
++    },
++    recommended_next_action: success
++      ? 'Review the receipt, especially git diff and verification gaps, before treating the task as approved.'
++      : 'Inspect the OpenClaw error and rerun or repair the failed task before approval.',
++  };
++}
++
++function summarizeOpenClawClaim({ event, ctx, lastAssistant }) {
++  if (event.success === false) return `OpenClaw agent turn failed${event.error ? `: ${truncate(String(event.error), 96)}` : ''}`;
++  const agentId = stringOrNull(ctx.agentId) || 'agent';
++  if (lastAssistant) return `OpenClaw ${agentId} completed: ${truncate(lastAssistant.replace(/\s+/g, ' '), 120)}`;
++  return `OpenClaw ${agentId} completed an agent turn`;
++}
++
++function sanitizeOpenClawPayload({ event, ctx }) {
++  return {
++    event: {
++      runId: stringOrNull(event.runId),
++      success: event.success !== false,
++      error: stringOrNull(event.error),
++      durationMs: typeof event.durationMs === 'number' ? event.durationMs : undefined,
++      messages: Array.isArray(event.messages) ? event.messages.map(sanitizeMessage).slice(-20) : [],
++    },
++    ctx: {
++      agentId: stringOrNull(ctx.agentId),
++      sessionId: stringOrNull(ctx.sessionId),
++      sessionKey: stringOrNull(ctx.sessionKey),
++      runId: stringOrNull(ctx.runId),
++      workspaceDir: stringOrNull(ctx.workspaceDir),
++      modelProviderId: stringOrNull(ctx.modelProviderId),
++      modelId: stringOrNull(ctx.modelId),
++      messageProvider: stringOrNull(ctx.messageProvider),
++      channelId: stringOrNull(ctx.channelId),
++    },
++  };
++}
++
++function sanitizeMessage(message) {
++  if (!isRecord(message)) return { type: typeof message, text: truncate(String(message), 1000) };
++  const role = stringOrNull(message.role) || stringOrNull(message.type) || 'unknown';
++  const text = extractMessageText(message);
++  return {
++    role,
++    type: stringOrNull(message.type),
++    toolName: stringOrNull(message.toolName) || stringOrNull(message.name),
++    content: text ? truncate(text, 2000) : undefined,
++  };
++}
++
++function findLastAssistantText(messages) {
++  for (let i = messages.length - 1; i >= 0; i -= 1) {
++    const message = messages[i];
++    if (!isRecord(message)) continue;
++    const role = stringOrNull(message.role) || stringOrNull(message.type);
++    if (role && !/assistant|agent|message_end|output/i.test(role)) continue;
++    const text = extractMessageText(message);
++    if (text) return truncate(text.trim(), 2000);
++  }
++  return null;
++}
++
++function extractMessageText(message) {
++  for (const key of ['content', 'text', 'message']) {
++    const value = message[key];
++    if (typeof value === 'string' && value.trim()) return value.trim();
++  }
++  const content = message.content;
++  if (Array.isArray(content)) {
++    return content
++      .map((part) => isRecord(part) && typeof part.text === 'string' ? part.text : '')
++      .filter(Boolean)
++      .join('\n')
++      .trim() || null;
++  }
++  return null;
++}
++
++function isRecord(value) {
++  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
++}
++
++function stringOrNull(value) {
++  return typeof value === 'string' && value.trim() ? value.trim() : null;
++}
++
++function truncate(text, max) {
++  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
++}
++
+ function github(args) {
+   ensureInitialized();
+   const subcommand = args.shift();
+diff --git a/test/unit.js b/test/unit.js
+index e3aab43..3ceb242 100644
+--- a/test/unit.js
++++ b/test/unit.js
+@@ -1,11 +1,12 @@
+ const assert = require('node:assert/strict');
+-const { mkdtempSync, writeFileSync } = require('node:fs');
++const { mkdtempSync, readFileSync, writeFileSync } = require('node:fs');
+ const { tmpdir } = require('node:os');
+ const { join } = require('node:path');
+ const { spawnSync } = require('node:child_process');
+ 
+ const { renderMarkdown } = require('../src/render-markdown');
+ const { validateReceipt } = require('../src/schema');
++const receiptsPlugin = require('../openclaw/plugin.js');
+ 
+ const sampleReceipt = {
+   schema_version: '0.1.0',
+@@ -44,6 +45,51 @@ const dryRun = spawnOk(['github', 'comment', '--pr', '123', '--repo', 'heybeaux/
+ assert(dryRun.stdout.includes('Would comment on heybeaux/receipts#123'));
+ assert(dryRun.stdout.includes('# Receipt: GitHub dry run receipt'));
+ 
++const openclawWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-openclaw-'));
++const eventPath = join(openclawWorkdir, 'agent-end.json');
++writeFileSync(eventPath, JSON.stringify({
++  event: {
++    runId: 'run_123',
++    success: true,
++    durationMs: 42,
++    messages: [
++      { role: 'user', content: 'Please do the thing.' },
++      { role: 'tool', toolName: 'exec', content: 'tests passed' },
++      { role: 'assistant', content: 'Implemented the thing and tests pass.' },
++    ],
++  },
++  ctx: {
++    agentId: 'nori',
++    sessionId: 'sess_123',
++    sessionKey: 'agent:nori:main',
++    runId: 'run_123',
++    workspaceDir: openclawWorkdir,
++    modelProviderId: 'sakana',
++    modelId: 'fugu',
++  },
++}, null, 2));
++const openclawRun = spawnSync(process.execPath, [cli, 'openclaw', 'agent-end', '--event', eventPath, '--workspace-dir', openclawWorkdir], {
++  cwd: openclawWorkdir,
++  encoding: 'utf8',
++});
++if (openclawRun.status !== 0) {
++  console.error(openclawRun.stdout);
++  console.error(openclawRun.stderr);
++  process.exit(1);
++}
++assert(openclawRun.stdout.includes('OpenClaw receipt completed:'));
++const openclawJsonMatch = openclawRun.stdout.match(/JSON: (.+)/);
++assert(openclawJsonMatch);
++const openclawReceipt = JSON.parse(readFileSync(join(openclawWorkdir, openclawJsonMatch[1].trim()), 'utf8'));
++assert.equal(openclawReceipt.task.source, 'openclaw');
++assert.equal(openclawReceipt.integrations.openclaw.run_id, 'run_123');
++assert(openclawReceipt.evidence.some((entry) => entry.label === 'OpenClaw agent_end event'));
++assert(openclawReceipt.integrity.receipt_payload_sha256);
++
++assert.equal(receiptsPlugin.__private.hasToolEvidence([{ role: 'tool', content: 'ok' }]), true);
++assert.equal(receiptsPlugin.__private.shouldCapture({ success: true, messages: [{ role: 'assistant', content: 'hi' }] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), false);
++assert.equal(receiptsPlugin.__private.shouldCapture({ success: false, messages: [] }, {}, receiptsPlugin.__private.DEFAULT_CONFIG), true);
++
+ console.log('Unit tests passed');
+ 
+ function spawnOk(args) {

@@ -1,0 +1,58 @@
+{
+  "id": "receipts",
+  "name": "Receipts",
+  "description": "Generates local proof-of-work receipts from OpenClaw agent completion events.",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "captureMode": {
+        "type": "string",
+        "enum": ["all", "tool-runs", "failures"],
+        "default": "tool-runs"
+      },
+      "includeFailed": {
+        "type": "boolean",
+        "default": true
+      },
+      "workspaceDir": {
+        "type": "string"
+      },
+      "receiptsBin": {
+        "type": "string"
+      },
+      "dryRun": {
+        "type": "boolean",
+        "default": false
+      },
+      "skipSessionKeyPrefixes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    }
+  },
+  "uiHints": {
+    "captureMode": {
+      "label": "Capture Mode",
+      "help": "Choose which OpenClaw agent completions should generate receipts."
+    },
+    "workspaceDir": {
+      "label": "Workspace Directory",
+      "help": "Optional fixed directory where .receipts artifacts should be written. Defaults to the agent turn workspace."
+    },
+    "receiptsBin": {
+      "label": "Receipts CLI",
+      "help": "Optional path to receipts CLI executable. Defaults to this package's bin/receipts.js."
+    }
+  }
+}

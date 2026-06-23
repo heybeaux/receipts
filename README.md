@@ -59,9 +59,39 @@ receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
 
 With no `--receipt`, it uses the most recently completed receipt. With no `--repo`, it infers the repo from `origin`.
 
+### OpenClaw task-completion hook
+
+Receipts ships an optional OpenClaw plugin adapter. When enabled, it listens to OpenClaw's `agent_end` lifecycle hook and generates a local receipt from completed agent turns.
+
+Install from this checkout:
+
+```bash
+openclaw plugins install /path/to/receipts
+openclaw plugins enable receipts
+```
+
+Default behavior captures failed turns and successful turns that include tool evidence. Configure under `plugins.entries.receipts.config`:
+
+```json
+{
+  "captureMode": "tool-runs",
+  "includeFailed": true,
+  "workspaceDir": "/optional/fixed/output/workspace",
+  "dryRun": false
+}
+```
+
+The adapter writes receipts into the agent turn workspace by default. It records OpenClaw run/session metadata under `integrations.openclaw` and stores a bounded `openclaw-agent-end.json` evidence artifact.
+
+For tests or custom integrations, the CLI can convert an exported OpenClaw `agent_end` event directly:
+
+```bash
+receipts openclaw agent-end --event /tmp/agent-end.json --workspace-dir .
+```
+
 ### Integrity
 
-On `done`, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
+On `done` and OpenClaw hook completion, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
 
 ## Architecture
 
