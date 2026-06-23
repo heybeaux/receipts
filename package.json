@@ -13,6 +13,7 @@
     "schemas/",
     "openclaw.plugin.json",
     "README.md",
+    "AGENTS.md",
     "LICENSE"
   ],
   "scripts": {

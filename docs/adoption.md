@@ -178,3 +178,18 @@ npm run build
 ## 6. Worked Examples
 
 See [`docs/examples/verification-workflow.md`](./examples/verification-workflow.md) for a clean receipt, a not-run policy downgrade, and tamper detection examples.
+
+## 7. Agent Entry Point Adoption
+
+Target user: coding agents dropped into an unfamiliar repository that need a clear Receipts operating procedure.
+
+Point agents at the repository-level [`AGENTS.md`](../AGENTS.md). It explains how to:
+
+- install or invoke the CLI,
+- start a receipt from the target project root,
+- capture command/file/link/note evidence,
+- complete with honest risk and not-run checks,
+- verify the receipt before reporting success,
+- and post the receipt to a GitHub PR when appropriate.
+
+This file is intentionally short and imperative so agents can follow it without reading the full product docs.

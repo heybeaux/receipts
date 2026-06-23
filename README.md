@@ -275,9 +275,13 @@ Design principles: intentionally boring (local filesystem, portable JSON, Markdo
 
 ---
 
+## Agent Entry Point
+
+Coding agents can start with [`AGENTS.md`](./AGENTS.md): a concise playbook for installing Receipts locally, creating a task receipt, capturing verification evidence, completing honestly, verifying integrity, and reporting receipt status back to a human.
+
 ## Adoption Guide
 
-Receipts v1 adoption docs are being tracked in [`docs/adoption.md`](./docs/adoption.md), covering local CLI use, trust verification, OpenClaw, GitHub PR comments, CI usage, and worked examples.
+Receipts v1 adoption docs are tracked in [`docs/adoption.md`](./docs/adoption.md), covering local CLI use, trust verification, OpenClaw, GitHub PR comments, CI usage, and worked examples.
 
 ---
 

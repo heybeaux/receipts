@@ -1,0 +1,123 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_170028_b5945d",
+  "created_at": "2026-06-23T17:00:28.926Z",
+  "updated_at": "2026-06-23T17:00:28.976Z",
+  "status": "self-verified",
+  "claim": {
+    "summary": "Add agent entry point (AGENTS.md) for Receipts adoption",
+    "details": "Added repository-level AGENTS.md so coding agents can install Receipts, create a task receipt, capture evidence, complete honestly, verify integrity, and report status; wired into package files, README, adoption docs, and OpenSpec tasks."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "manual",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "fe7216cb259d325ea33e458299c2cc0e3cb7fc66",
+    "commit_after": "fe7216cb259d325ea33e458299c2cc0e3cb7fc66",
+    "git_status": "M .receipts/active.json\n M README.md\n M docs/adoption.md\n M openspec/changes/define-receipts-v1/tasks.md\n M package.json\n?? .receipts/receipts/rcpt_20260623_170028_b5945d.draft.json\n?? AGENTS.md",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_170028_b5945d/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "docs/adoption.md",
+      "kind": "modified",
+      "summary": "M docs/adoption.md"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v1/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v1/tasks.md"
+    },
+    {
+      "path": "package.json",
+      "kind": "modified",
+      "summary": "M package.json"
+    },
+    {
+      "path": "AGENTS.md",
+      "kind": "added",
+      "summary": "?? AGENTS.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "Local CI contract",
+      "created_at": "2026-06-23T17:00:28.951Z",
+      "command": "npm run lint && npm test && npm run build",
+      "exit_code": 0,
+      "note": "Syntax lint, OpenSpec/unit/smoke tests, and npm pack dry-run (AGENTS.md included) passed."
+    },
+    {
+      "id": "ev_002",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_170028_b5945d/git.diff",
+      "created_at": "2026-06-23T17:00:29.027Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "Local CI contract",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm run lint && npm test && npm run build",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "AGENTS.md guidance is documentation; not enforced by automated tests beyond packaging/lint."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Push, confirm GitHub Actions passes, then consider a ClawHub release including AGENTS.md.",
+  "completed_at": "2026-06-23T17:00:28.976Z",
+  "policy": {
+    "verdict": "self-verified",
+    "requested": "self-verified",
+    "self_verified_allowed": true,
+    "enforced": true,
+    "reasons": [
+      "all verification checks passed"
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "3376d72cde0f0fac3a1220e5798f16a5189a09de1283c1fc12c3eb9137613d7c",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_170028_b5945d/git.diff",
+        "sha256": "ba75bfedd13dbff4c1698108600e75ccef44ad5533382dd1ea8cd1ff967d1d34"
+      }
+    ]
+  }
+}

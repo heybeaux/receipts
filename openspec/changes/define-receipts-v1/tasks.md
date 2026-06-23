@@ -29,6 +29,7 @@
 - [x] 3.5 Add CI-style usage docs, including verify exit codes.
 - [x] 3.6 Add at least one worked example receipt or transcript in docs.
 - [x] 3.7 Add GitHub Actions CI workflow for lint, test, and build.
+- [x] 3.8 Add agent entry point documentation for local agent adoption.
 
 ## 4. Spec, Versioning, and Release
 
