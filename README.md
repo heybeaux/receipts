@@ -229,6 +229,12 @@ Design principles: intentionally boring (local filesystem, portable JSON, Markdo
 
 ---
 
+## Adoption Guide
+
+Receipts v1 adoption docs are being tracked in [`docs/adoption.md`](./docs/adoption.md), covering local CLI use, trust verification, OpenClaw, GitHub PR comments, CI usage, and worked examples.
+
+---
+
 ## Development
 
 ```bash
