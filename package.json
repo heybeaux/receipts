@@ -1,0 +1,19 @@
+{
+  "name": "receipts",
+  "version": "1.0.0",
+  "description": "Verifiable proof-of-work for AI teams.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run openspec:validate",
+    "openspec:list": "openspec list",
+    "openspec:show": "openspec show define-receipts-v0",
+    "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@fission-ai/openspec": "^1.4.1"
+  },
+  "private": true
+}
