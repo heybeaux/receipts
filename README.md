@@ -15,6 +15,47 @@ The active OpenSpec migration lives at:
 - [`openspec/changes/define-receipts-v0/design.md`](./openspec/changes/define-receipts-v0/design.md)
 - [`openspec/changes/define-receipts-v0/tasks.md`](./openspec/changes/define-receipts-v0/tasks.md)
 
+## CLI
+
+Receipts now has a local-first Node.js CLI.
+
+```bash
+npm install
+npm run cli -- init
+npm run cli -- claim "Fixed auth callback bug" --details "Handled missing state."
+npm run cli -- evidence add --note "Reviewed changed callback flow." --label "Manual review"
+npm run cli -- run -- npm test
+npm run cli -- done \
+  --risk "OAuth provider edge cases not manually tested." \
+  --not-run "Browser OAuth smoke test" \
+  --next "Review diff and run browser smoke test."
+```
+
+When linked or installed as a package, the executable is `receipts`:
+
+```bash
+receipts init
+receipts claim "Fixed auth callback bug"
+receipts run -- npm test
+receipts done
+```
+
+Generated artifacts live under `.receipts/`:
+
+- `.receipts/config.json`
+- `.receipts/active.json`
+- `.receipts/receipts/<receipt-id>.json`
+- `.receipts/markdown/<receipt-id>.md`
+- `.receipts/artifacts/<receipt-id>/...`
+
+## Validation
+
+```bash
+npm test
+```
+
+This runs OpenSpec validation and the CLI smoke test.
+
 ## OpenSpec
 
 OpenSpec is installed as a local dev dependency.

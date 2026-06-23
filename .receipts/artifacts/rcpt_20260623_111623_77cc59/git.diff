@@ -1,0 +1,124 @@
+diff --git a/README.md b/README.md
+index 7922f73..7384c14 100644
+--- a/README.md
++++ b/README.md
+@@ -15,6 +15,47 @@ The active OpenSpec migration lives at:
+ - [`openspec/changes/define-receipts-v0/design.md`](./openspec/changes/define-receipts-v0/design.md)
+ - [`openspec/changes/define-receipts-v0/tasks.md`](./openspec/changes/define-receipts-v0/tasks.md)
+ 
++## CLI
++
++Receipts now has a local-first Node.js CLI.
++
++```bash
++npm install
++npm run cli -- init
++npm run cli -- claim "Fixed auth callback bug" --details "Handled missing state."
++npm run cli -- evidence add --note "Reviewed changed callback flow." --label "Manual review"
++npm run cli -- run -- npm test
++npm run cli -- done \
++  --risk "OAuth provider edge cases not manually tested." \
++  --not-run "Browser OAuth smoke test" \
++  --next "Review diff and run browser smoke test."
++```
++
++When linked or installed as a package, the executable is `receipts`:
++
++```bash
++receipts init
++receipts claim "Fixed auth callback bug"
++receipts run -- npm test
++receipts done
++```
++
++Generated artifacts live under `.receipts/`:
++
++- `.receipts/config.json`
++- `.receipts/active.json`
++- `.receipts/receipts/<receipt-id>.json`
++- `.receipts/markdown/<receipt-id>.md`
++- `.receipts/artifacts/<receipt-id>/...`
++
++## Validation
++
++```bash
++npm test
++```
++
++This runs OpenSpec validation and the CLI smoke test.
++
+ ## OpenSpec
+ 
+ OpenSpec is installed as a local dev dependency.
+diff --git a/openspec/changes/define-receipts-v0/tasks.md b/openspec/changes/define-receipts-v0/tasks.md
+index e0e66de..5016a2e 100644
+--- a/openspec/changes/define-receipts-v0/tasks.md
++++ b/openspec/changes/define-receipts-v0/tasks.md
+@@ -45,14 +45,21 @@
+ 
+ ## 6. Next Implementation Phase
+ 
+-- [ ] 6.1 Decide runtime language for the first CLI implementation.
+-- [ ] 6.2 Create initial receipt schema module.
+-- [ ] 6.3 Implement local filesystem layout.
+-- [ ] 6.4 Implement `receipts init`.
+-- [ ] 6.5 Implement `receipts claim`.
+-- [ ] 6.6 Implement `receipts evidence add`.
+-- [ ] 6.7 Implement `receipts run -- <command>`.
+-- [ ] 6.8 Implement `receipts done` with git metadata collection.
+-- [ ] 6.9 Render JSON receipts.
+-- [ ] 6.10 Render Markdown receipts.
+-- [ ] 6.11 Dogfood Receipts on the next agent-coded task.
++- [x] 6.1 Decide runtime language for the first CLI implementation. (Node.js, zero runtime deps.)
++- [x] 6.2 Create initial receipt schema module. (Inlined in `bin/receipts.js`, schema_version 0.1.0.)
++- [x] 6.3 Implement local filesystem layout. (`.receipts/` config/active/receipts/markdown/artifacts.)
++- [x] 6.4 Implement `receipts init`.
++- [x] 6.5 Implement `receipts claim`.
++- [x] 6.6 Implement `receipts evidence add`.
++- [x] 6.7 Implement `receipts run -- <command>`.
++- [x] 6.8 Implement `receipts done` with git metadata collection.
++- [x] 6.9 Render JSON receipts.
++- [x] 6.10 Render Markdown receipts.
++- [x] 6.11 Dogfood Receipts on the next agent-coded task. (Self-receipt generated for this CLI build.)
++
++## 7. Follow-up Implementation Phase
++
++- [ ] 7.1 Extract schema/renderer into modules with unit tests.
++- [ ] 7.2 Add GitHub PR comment integration adapter.
++- [ ] 7.3 Add OpenClaw task-completion receipt hook.
++- [ ] 7.4 Add content hashing for completed receipts.
+diff --git a/package-lock.json b/package-lock.json
+index 2bd7025..bd8a6a1 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,6 +8,9 @@
+       "name": "receipts",
+       "version": "1.0.0",
+       "license": "ISC",
++      "bin": {
++        "receipts": "bin/receipts.js"
++      },
+       "devDependencies": {
+         "@fission-ai/openspec": "^1.4.1"
+       }
+diff --git a/package.json b/package.json
+index 52b5521..80e1550 100644
+--- a/package.json
++++ b/package.json
+@@ -2,9 +2,14 @@
+   "name": "receipts",
+   "version": "1.0.0",
+   "description": "Verifiable proof-of-work for AI teams.",
+-  "main": "index.js",
++  "main": "bin/receipts.js",
++  "bin": {
++    "receipts": "bin/receipts.js"
++  },
+   "scripts": {
+-    "test": "npm run openspec:validate",
++    "test": "npm run openspec:validate && npm run cli:smoke",
++    "cli": "node bin/receipts.js",
++    "cli:smoke": "node test/smoke.js",
+     "openspec:list": "openspec list",
+     "openspec:show": "openspec show define-receipts-v0",
+     "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all"

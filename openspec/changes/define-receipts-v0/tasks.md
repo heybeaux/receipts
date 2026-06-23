@@ -45,14 +45,21 @@
 
 ## 6. Next Implementation Phase
 
-- [ ] 6.1 Decide runtime language for the first CLI implementation.
-- [ ] 6.2 Create initial receipt schema module.
-- [ ] 6.3 Implement local filesystem layout.
-- [ ] 6.4 Implement `receipts init`.
-- [ ] 6.5 Implement `receipts claim`.
-- [ ] 6.6 Implement `receipts evidence add`.
-- [ ] 6.7 Implement `receipts run -- <command>`.
-- [ ] 6.8 Implement `receipts done` with git metadata collection.
-- [ ] 6.9 Render JSON receipts.
-- [ ] 6.10 Render Markdown receipts.
-- [ ] 6.11 Dogfood Receipts on the next agent-coded task.
+- [x] 6.1 Decide runtime language for the first CLI implementation. (Node.js, zero runtime deps.)
+- [x] 6.2 Create initial receipt schema module. (Inlined in `bin/receipts.js`, schema_version 0.1.0.)
+- [x] 6.3 Implement local filesystem layout. (`.receipts/` config/active/receipts/markdown/artifacts.)
+- [x] 6.4 Implement `receipts init`.
+- [x] 6.5 Implement `receipts claim`.
+- [x] 6.6 Implement `receipts evidence add`.
+- [x] 6.7 Implement `receipts run -- <command>`.
+- [x] 6.8 Implement `receipts done` with git metadata collection.
+- [x] 6.9 Render JSON receipts.
+- [x] 6.10 Render Markdown receipts.
+- [x] 6.11 Dogfood Receipts on the next agent-coded task. (Self-receipt generated for this CLI build.)
+
+## 7. Follow-up Implementation Phase
+
+- [ ] 7.1 Extract schema/renderer into modules with unit tests.
+- [ ] 7.2 Add GitHub PR comment integration adapter.
+- [ ] 7.3 Add OpenClaw task-completion receipt hook.
+- [ ] 7.4 Add content hashing for completed receipts.

@@ -2,9 +2,14 @@
   "name": "receipts",
   "version": "1.0.0",
   "description": "Verifiable proof-of-work for AI teams.",
-  "main": "index.js",
+  "main": "bin/receipts.js",
+  "bin": {
+    "receipts": "bin/receipts.js"
+  },
   "scripts": {
-    "test": "npm run openspec:validate",
+    "test": "npm run openspec:validate && npm run cli:smoke",
+    "cli": "node bin/receipts.js",
+    "cli:smoke": "node test/smoke.js",
     "openspec:list": "openspec list",
     "openspec:show": "openspec show define-receipts-v0",
     "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all"
