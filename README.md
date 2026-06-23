@@ -284,9 +284,13 @@ Receipts v1 adoption docs are being tracked in [`docs/adoption.md`](./docs/adopt
 ## Development
 
 ```bash
+npm run lint        # syntax-check all first-party JS
 npm test            # OpenSpec validation + unit tests + CLI smoke test
+npm run build       # npm package dry-run
 npm run cli -- help
 ```
+
+GitHub Actions runs the same contract on Node 20.x and 22.x via [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
 The product spec is managed with [OpenSpec](https://github.com/Fission-AI/OpenSpec):
 

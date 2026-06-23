@@ -24,10 +24,11 @@
 
 - [x] 3.1 Update README quickstart for v1 commands (`list`, `show`, `verify`).
 - [x] 3.2 Add a trust workflow section: generate → verify → tamper detection.
-- [ ] 3.3 Add OpenClaw adoption docs, including conversation-access opt-in and ClawHub install path.
-- [ ] 3.4 Add GitHub PR comment adoption docs.
-- [ ] 3.5 Add CI-style usage docs, including verify exit codes.
-- [ ] 3.6 Add at least one worked example receipt or transcript in docs.
+- [x] 3.3 Add OpenClaw adoption docs, including conversation-access opt-in and ClawHub install path.
+- [x] 3.4 Add GitHub PR comment adoption docs.
+- [x] 3.5 Add CI-style usage docs, including verify exit codes.
+- [x] 3.6 Add at least one worked example receipt or transcript in docs.
+- [x] 3.7 Add GitHub Actions CI workflow for lint, test, and build.
 
 ## 4. Spec, Versioning, and Release
 

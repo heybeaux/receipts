@@ -1,62 +1,82 @@
 # Receipts Adoption Guide
 
-Receipts v1 should be self-contained: no hosted backend, no OpenClaw requirement, no Ginnung-stack dependency. This guide tracks the adoption paths that should be documented and tested before v1 is cut.
+Receipts v1 is designed to be self-contained: no hosted backend, no OpenClaw requirement, no Ginnung-stack dependency. Start with the local CLI, then opt into adapters when they help.
 
 ## 1. Local CLI Adoption
 
 Target user: a developer or agent running in a git checkout.
-
-Expected flow:
 
 ```bash
 npm install -g @beaux-riel/receipts
 receipts init
 receipts claim "Implement feature X" --details "Short implementation summary."
 receipts run -- npm test
-receipts done --risk "Manual browser smoke not run." --not-run "Browser smoke test" --next "Review diff and smoke test manually."
+receipts done \
+  --risk "Manual browser smoke not run." \
+  --not-run "Browser smoke test" \
+  --next "Review diff and smoke test manually."
 receipts list
 receipts show latest
 receipts verify latest
 ```
 
-Docs need to explain:
+Generated files live under `.receipts/`:
 
-- Where receipts are stored (`.receipts/`).
-- What JSON vs Markdown outputs are for.
-- Why `needs-review` is the default.
-- What `self-verified` means and when policy allows it.
+- `receipts/<id>.json` — machine-readable proof-of-work artifact.
+- `markdown/<id>.md` — human-readable receipt for PRs, chat, and review.
+- `artifacts/<id>/` — captured command output, git diff, and attached evidence.
+- `active.json` — mutable pointer to the current/latest receipt.
+
+Default completed status is `needs-review`. `self-verified` is allowed only when policy sees at least one passed verification check and no failed/pending/not-run checks.
 
 ## 2. Trust / Verification Adoption
 
 Target user: a reviewer who wants to know whether the receipt and evidence still match what was generated.
 
-Expected flow:
-
 ```bash
 receipts verify latest
-receipts verify rcpt_... --json
+receipts verify rcpt_20260623_152306_ad0a0c --json
 ```
 
-Docs need to explain:
+Verification checks:
 
-- Payload hash vs artifact hashes.
-- Expected clean output.
-- Failure output for tampered receipt JSON.
-- Failure output for modified/missing artifacts.
-- Exit codes for CI.
+1. Recompute the receipt payload SHA-256 using the receipt JSON with `integrity` removed.
+2. Recompute every artifact SHA-256 listed under `integrity.artifacts`.
+3. Report mismatches and missing artifacts explicitly.
+
+Exit codes:
+
+- `0` — clean.
+- `1` — payload mismatch, artifact mismatch, missing artifact, missing integrity, or malformed receipt.
+- `64` — usage error.
+- `65` — no matching receipt.
+- `66` — receipt/artifact read failure.
+
+Human output is for local review; `--json` is for CI and automation.
 
 ## 3. OpenClaw Adoption
 
 Target user: OpenClaw users who want automatic receipts for agent turns.
 
-Expected flow:
+### Install
+
+From ClawHub, once the package is available to your OpenClaw gateway:
 
 ```bash
 openclaw plugins install @beaux-riel/receipts
 openclaw plugins enable receipts
 ```
 
-Required config note:
+From a local checkout during development:
+
+```bash
+openclaw plugins install /path/to/receipts
+openclaw plugins enable receipts
+```
+
+### Required conversation-access opt-in
+
+The plugin listens to `agent_end` and needs the task transcript to produce a useful claim and evidence artifact. OpenClaw therefore requires explicit conversation access for this non-bundled plugin:
 
 ```json
 {
@@ -71,57 +91,90 @@ Required config note:
 }
 ```
 
-Docs need to explain:
+### Capture configuration
 
-- Why conversation access is required.
-- Default capture behavior (`tool-runs`, failed turns included).
-- Where generated OpenClaw receipts land.
-- What OpenClaw metadata is captured.
-- How model attribution is resolved.
+Configure under `plugins.entries.receipts.config`:
+
+```json
+{
+  "captureMode": "tool-runs",
+  "includeFailed": true,
+  "workspaceDir": "/optional/fixed/output/workspace",
+  "dryRun": false,
+  "skipSessionKeyPrefixes": []
+}
+```
+
+Modes:
+
+- `tool-runs` — default; capture agent turns that used tools.
+- `all` — capture every completed turn.
+- `failures` — capture failed turns only.
+
+The adapter is safe-by-default: it writes receipts in-process and does not shell out from the plugin runtime. It records OpenClaw run/session metadata, model attribution when available, and a bounded `openclaw-agent-end.json` evidence artifact.
 
 ## 4. GitHub PR Adoption
 
-Target user: a developer or agent posting proof-of-work to a PR.
+Target user: a developer or agent posting proof-of-work to a pull request.
 
-Expected flow:
+Requires authenticated GitHub CLI (`gh auth status`).
 
 ```bash
 receipts github comment --pr 123
 receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
+receipts github comment --pr 123 --receipt rcpt_20260623_152306_ad0a0c
 ```
 
-Docs need to explain:
+Behavior:
 
-- Requires authenticated `gh`.
-- Uses latest receipt by default.
-- Markdown is posted as the PR comment body.
+- Uses the latest completed receipt by default.
+- Infers `owner/repo` from `origin` when possible.
+- Posts the Markdown receipt body as the PR comment.
+- `--dry-run` prints the comment body without posting.
+
+Recommended review pattern:
+
+1. Agent generates receipt with `receipts done`.
+2. Agent posts receipt to the PR.
+3. Reviewer checks the receipt status, policy verdict, failed/not-run checks, and risks before approving.
 
 ## 5. CI Adoption
 
-Target user: CI job that wants to attach and verify a receipt.
+Target user: CI jobs that want to generate or verify receipts.
 
-Expected flow:
+### Generate a receipt in CI
 
 ```bash
 receipts init
-receipts claim "CI verification for $GITHUB_SHA" --actor-type ci --actor-id github-actions
+receipts claim "CI verification for $GITHUB_SHA" \
+  --actor-type ci \
+  --actor-id github-actions \
+  --task-source github-actions \
+  --task-id "$GITHUB_RUN_ID"
 receipts run -- npm test
 receipts done --self-verified --next "Merge if branch protection is green."
 receipts verify latest --json
 ```
 
-Docs need to explain:
+If tests fail, `receipts run -- npm test` exits non-zero, so place cleanup/upload steps in `always()` blocks in GitHub Actions if you need artifacts from failed runs.
 
-- Non-zero verify exit codes fail CI.
-- Policy may downgrade `--self-verified` if checks are weak.
-- Upload `.receipts/` as a CI artifact.
+### Verify an existing receipt in CI
+
+```bash
+receipts verify latest
+receipts verify latest --json > receipt-verification.json
+```
+
+Non-zero `verify` exits should fail CI. Upload `.receipts/` as a workflow artifact when you want the receipt bundle available after the job.
+
+This repository’s CI is intentionally small and mirrors the local contract:
+
+```bash
+npm run lint
+npm test
+npm run build
+```
 
 ## 6. Worked Examples
 
-Before v1, add at least one worked example showing:
-
-- A clean receipt.
-- A receipt with a not-run check.
-- A tampered receipt or artifact detected by `verify`.
-
-Examples can live under `docs/examples/` or inline in README if short.
+See [`docs/examples/verification-workflow.md`](./examples/verification-workflow.md) for a clean receipt, a not-run policy downgrade, and tamper detection examples.

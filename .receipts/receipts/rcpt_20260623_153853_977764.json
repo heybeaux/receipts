@@ -1,0 +1,133 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_153853_977764",
+  "created_at": "2026-06-23T15:38:53.502Z",
+  "updated_at": "2026-06-23T15:38:53.552Z",
+  "status": "self-verified",
+  "claim": {
+    "summary": "Add Receipts GitHub CI and adoption docs",
+    "details": "Added GitHub Actions CI for lint/test/build, lint/build scripts, adoption docs for OpenClaw/GitHub/CI, README CI guidance, and a worked verification workflow example."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "beauxwalton",
+    "model": null
+  },
+  "task": {
+    "source": "manual",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "dd52e3284afcf2338998a7c7702e296e68fc5e1e",
+    "commit_after": "dd52e3284afcf2338998a7c7702e296e68fc5e1e",
+    "git_status": "M .receipts/active.json\n M README.md\n M docs/adoption.md\n M openspec/changes/define-receipts-v1/tasks.md\n M package.json\n?? .github/\n?? .receipts/receipts/rcpt_20260623_153853_977764.draft.json\n?? docs/examples/\n?? scripts/",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_153853_977764/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "docs/adoption.md",
+      "kind": "modified",
+      "summary": "M docs/adoption.md"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v1/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v1/tasks.md"
+    },
+    {
+      "path": "package.json",
+      "kind": "modified",
+      "summary": "M package.json"
+    },
+    {
+      "path": ".github/",
+      "kind": "added",
+      "summary": "?? .github/"
+    },
+    {
+      "path": "docs/examples/",
+      "kind": "added",
+      "summary": "?? docs/examples/"
+    },
+    {
+      "path": "scripts/",
+      "kind": "added",
+      "summary": "?? scripts/"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "Local CI contract",
+      "created_at": "2026-06-23T15:38:53.527Z",
+      "command": "npm run lint && npm test && npm run build",
+      "exit_code": 0,
+      "note": "Syntax lint, OpenSpec/unit/smoke tests, and npm pack dry-run build passed."
+    },
+    {
+      "id": "ev_002",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_153853_977764/git.diff",
+      "created_at": "2026-06-23T15:38:53.616Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "Local CI contract",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm run lint && npm test && npm run build",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "GitHub Actions workflow has not run remotely yet; it will run after push."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Push branch and confirm GitHub Actions passes on master.",
+  "completed_at": "2026-06-23T15:38:53.552Z",
+  "policy": {
+    "verdict": "self-verified",
+    "requested": "self-verified",
+    "self_verified_allowed": true,
+    "enforced": true,
+    "reasons": [
+      "all verification checks passed"
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "1cf5d28d9320221fa063d2d1d2f1d9b9d9af034acc365d5e9b741bb6a8e44d4b",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_153853_977764/git.diff",
+        "sha256": "e98d862a80a3e7e902acc3ca1f5119705bccf8fcf2af146bdefbe400ae1774d1"
+      }
+    ]
+  }
+}

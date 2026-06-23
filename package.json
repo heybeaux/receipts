@@ -22,7 +22,9 @@
     "cli:smoke": "node test/smoke.js",
     "openspec:list": "openspec list",
     "openspec:show": "openspec show define-receipts-v0",
-    "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all"
+    "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all",
+    "lint": "node scripts/lint-syntax.js",
+    "build": "npm pack --dry-run --json"
   },
   "keywords": [],
   "author": "",
