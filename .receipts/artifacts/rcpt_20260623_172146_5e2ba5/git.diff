@@ -1,0 +1,132 @@
+diff --git a/.receipts/active.json b/.receipts/active.json
+index bcdccec..cf6b37f 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_171551_fa5a69",
+-  "updated_at": "2026-06-23T17:15:51.469Z"
++  "id": "rcpt_20260623_172146_5e2ba5",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_172146_5e2ba5.draft.json",
++  "updated_at": "2026-06-23T17:21:46.261Z"
+ }
+diff --git a/openclaw/plugin.js b/openclaw/plugin.js
+index 59ccff8..75b2344 100644
+--- a/openclaw/plugin.js
++++ b/openclaw/plugin.js
+@@ -15,7 +15,7 @@ const {
+   summarizeOpenClawClaim,
+ } = require('../src/openclaw-receipt');
+ 
+-const SCHEMA_VERSION = '0.1.0';
++const SCHEMA_VERSION = '1.0.0';
+ const DEFAULT_CONFIG = {
+   enabled: true,
+   captureMode: 'tool-runs',
+diff --git a/openspec/changes/define-receipts-v1/tasks.md b/openspec/changes/define-receipts-v1/tasks.md
+index 8962e6a..f3c52ef 100644
+--- a/openspec/changes/define-receipts-v1/tasks.md
++++ b/openspec/changes/define-receipts-v1/tasks.md
+@@ -34,7 +34,7 @@
+ ## 4. Spec, Versioning, and Release
+ 
+ - [x] 4.1 Update receipt JSON Schema for v1 policy metadata.
+-- [ ] 4.2 Bump package/schema version when implementation is complete.
++- [x] 4.2 Bump package/schema version when implementation is complete.
+ - [x] 4.3 Validate OpenSpec change and all specs.
+ - [x] 4.4 Run unit and smoke tests.
+ - [x] 4.5 Dogfood Receipts on the v1 implementation sprint.
+diff --git a/package-lock.json b/package-lock.json
+index d3f7335..bd8a6a1 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "receipts",
+-  "version": "0.1.0",
++  "version": "1.0.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "receipts",
+-      "version": "0.1.0",
++      "version": "1.0.0",
+       "license": "ISC",
+       "bin": {
+         "receipts": "bin/receipts.js"
+diff --git a/package.json b/package.json
+index a022f61..f96b58a 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@beaux-riel/receipts",
+-  "version": "0.1.0",
++  "version": "1.0.0",
+   "description": "Verifiable proof-of-work for AI teams.",
+   "main": "src/cli.js",
+   "bin": {
+diff --git a/schemas/receipt.schema.json b/schemas/receipt.schema.json
+index 2fce350..6bd89f3 100644
+--- a/schemas/receipt.schema.json
++++ b/schemas/receipt.schema.json
+@@ -20,7 +20,7 @@
+   ],
+   "properties": {
+     "schema_version": {
+-      "const": "0.1.0"
++      "const": "1.0.0"
+     },
+     "id": {
+       "type": "string",
+diff --git a/src/cli.js b/src/cli.js
+index e2bd4f9..68ce28d 100644
+--- a/src/cli.js
++++ b/src/cli.js
+@@ -16,7 +16,7 @@ const {
+   summarizeOpenClawClaim,
+ } = require('./openclaw-receipt');
+ 
+-const SCHEMA_VERSION = '0.1.0';
++const SCHEMA_VERSION = '1.0.0';
+ const RECEIPTS_DIR = '.receipts';
+ const CONFIG_FILE = 'config.json';
+ const ACTIVE_FILE = 'active.json';
+diff --git a/src/schema.js b/src/schema.js
+index bd22c00..4c28113 100644
+--- a/src/schema.js
++++ b/src/schema.js
+@@ -1,4 +1,4 @@
+-const SCHEMA_VERSION = '0.1.0';
++const SCHEMA_VERSION = '1.0.0';
+ const ALLOWED_STATUSES = ['draft', 'self-verified', 'needs-review', 'human-approved', 'rejected', 'superseded'];
+ const ALLOWED_CHECK_STATUSES = ['passed', 'failed', 'pending', 'not-run'];
+ 
+diff --git a/test/smoke.js b/test/smoke.js
+index ad782b9..6efe03b 100644
+--- a/test/smoke.js
++++ b/test/smoke.js
+@@ -56,7 +56,7 @@ if (existsSync(jsonPath.replace(/\.json$/, '.draft.json'))) {
+ const receipt = JSON.parse(readFileSync(jsonPath, 'utf8'));
+ const markdown = readFileSync(mdPath, 'utf8');
+ 
+-assert(receipt.schema_version === '0.1.0', 'schema version');
++assert(receipt.schema_version === '1.0.0', 'schema version');
+ assert(receipt.status === 'needs-review', 'done status');
+ assert(receipt.policy && receipt.policy.verdict === 'needs-review', 'policy verdict');
+ assert(receipt.claim.summary === 'Smoke test receipt', 'claim summary');
+diff --git a/test/unit.js b/test/unit.js
+index ee2a9fe..3022fad 100644
+--- a/test/unit.js
++++ b/test/unit.js
+@@ -16,7 +16,7 @@ const {
+ const receiptsPlugin = require('../openclaw/plugin.js');
+ 
+ const sampleReceipt = {
+-  schema_version: '0.1.0',
++  schema_version: '1.0.0',
+   id: 'rcpt_test_123456',
+   created_at: '2026-06-23T00:00:00.000Z',
+   updated_at: '2026-06-23T00:00:01.000Z',

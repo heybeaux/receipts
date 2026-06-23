@@ -34,7 +34,7 @@
 ## 4. Spec, Versioning, and Release
 
 - [x] 4.1 Update receipt JSON Schema for v1 policy metadata.
-- [ ] 4.2 Bump package/schema version when implementation is complete.
+- [x] 4.2 Bump package/schema version when implementation is complete.
 - [x] 4.3 Validate OpenSpec change and all specs.
 - [x] 4.4 Run unit and smoke tests.
 - [x] 4.5 Dogfood Receipts on the v1 implementation sprint.

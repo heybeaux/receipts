@@ -16,7 +16,7 @@ const {
 const receiptsPlugin = require('../openclaw/plugin.js');
 
 const sampleReceipt = {
-  schema_version: '0.1.0',
+  schema_version: '1.0.0',
   id: 'rcpt_test_123456',
   created_at: '2026-06-23T00:00:00.000Z',
   updated_at: '2026-06-23T00:00:01.000Z',

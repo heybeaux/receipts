@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = '0.1.0';
+const SCHEMA_VERSION = '1.0.0';
 const ALLOWED_STATUSES = ['draft', 'self-verified', 'needs-review', 'human-approved', 'rejected', 'superseded'];
 const ALLOWED_CHECK_STATUSES = ['passed', 'failed', 'pending', 'not-run'];
 

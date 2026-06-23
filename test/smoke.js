@@ -56,7 +56,7 @@ if (existsSync(jsonPath.replace(/\.json$/, '.draft.json'))) {
 const receipt = JSON.parse(readFileSync(jsonPath, 'utf8'));
 const markdown = readFileSync(mdPath, 'utf8');
 
-assert(receipt.schema_version === '0.1.0', 'schema version');
+assert(receipt.schema_version === '1.0.0', 'schema version');
 assert(receipt.status === 'needs-review', 'done status');
 assert(receipt.policy && receipt.policy.verdict === 'needs-review', 'policy verdict');
 assert(receipt.claim.summary === 'Smoke test receipt', 'claim summary');

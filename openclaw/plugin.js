@@ -15,7 +15,7 @@ const {
   summarizeOpenClawClaim,
 } = require('../src/openclaw-receipt');
 
-const SCHEMA_VERSION = '0.1.0';
+const SCHEMA_VERSION = '1.0.0';
 const DEFAULT_CONFIG = {
   enabled: true,
   captureMode: 'tool-runs',
