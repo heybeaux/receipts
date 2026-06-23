@@ -6,6 +6,15 @@
   "bin": {
     "receipts": "bin/receipts.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "openclaw/",
+    "schemas/",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "npm run openspec:validate && npm run test:unit && npm run cli:smoke",
     "test:unit": "node test/unit.js",
@@ -21,10 +30,17 @@
   "devDependencies": {
     "@fission-ai/openspec": "^1.4.1"
   },
-  "private": true,
   "openclaw": {
     "extensions": [
       "./openclaw/plugin.js"
-    ]
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.18",
+      "minGatewayVersion": "2026.5.18"
+    },
+    "build": {
+      "openclawVersion": "2026.5.18",
+      "pluginSdkVersion": "2026.5.18"
+    }
   }
 }

@@ -5,3 +5,4 @@ coverage/
 .env
 .env.*
 .receipts/artifacts/tmp/
+reports/
