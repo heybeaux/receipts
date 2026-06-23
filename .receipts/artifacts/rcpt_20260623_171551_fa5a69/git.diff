@@ -1,0 +1,30 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 178ebca..bfb6b4b 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -22,10 +22,10 @@ jobs:
+ 
+     steps:
+       - name: Checkout
+-        uses: actions/checkout@v4
++        uses: actions/checkout@v5
+ 
+       - name: Setup Node.js ${{ matrix.node-version }}
+-        uses: actions/setup-node@v4
++        uses: actions/setup-node@v5
+         with:
+           node-version: ${{ matrix.node-version }}
+           cache: npm
+diff --git a/.receipts/active.json b/.receipts/active.json
+index 2e18120..0c46ed9 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_170904_3af185",
+-  "updated_at": "2026-06-23T17:09:04.628Z"
++  "id": "rcpt_20260623_171551_fa5a69",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_171551_fa5a69.draft.json",
++  "updated_at": "2026-06-23T17:15:51.449Z"
+ }
