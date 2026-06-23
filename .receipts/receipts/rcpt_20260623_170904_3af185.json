@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_170904_3af185",
+  "created_at": "2026-06-23T17:09:04.586Z",
+  "updated_at": "2026-06-23T17:09:04.628Z",
+  "status": "self-verified",
+  "claim": {
+    "summary": "Trim Receipts CI matrix",
+    "details": "Removed deprecated Node 20 from the GitHub Actions matrix and updated README CI wording to reflect Node 22-only validation."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "manual",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "3e1b6a9b4d595446e844d4913e90705236a93dee",
+    "commit_after": "3e1b6a9b4d595446e844d4913e90705236a93dee",
+    "git_status": "M .github/workflows/ci.yml\n M .receipts/active.json\n M README.md\n?? .receipts/receipts/rcpt_20260623_170904_3af185.draft.json",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_170904_3af185/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "kind": "modified",
+      "summary": "M .github/workflows/ci.yml"
+    },
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "Local CI contract",
+      "created_at": "2026-06-23T17:09:04.608Z",
+      "command": "npm run lint && npm test && npm run build",
+      "exit_code": 0,
+      "note": "Syntax lint, OpenSpec/unit/smoke tests, and npm pack dry-run build passed after trimming the CI matrix."
+    },
+    {
+      "id": "ev_002",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_170904_3af185/git.diff",
+      "created_at": "2026-06-23T17:09:04.674Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "Local CI contract",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm run lint && npm test && npm run build",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "No known risks were identified. Review is still recommended."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Push and confirm the GitHub Actions run passes with the trimmed matrix.",
+  "completed_at": "2026-06-23T17:09:04.628Z",
+  "policy": {
+    "verdict": "self-verified",
+    "requested": "self-verified",
+    "self_verified_allowed": true,
+    "enforced": true,
+    "reasons": [
+      "all verification checks passed"
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "451a26b3ada5f044e77610afe139ce2d0f38e2d764f291bf879eaa757b1fa9ac",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_170904_3af185/git.diff",
+        "sha256": "edba501d11666164559d95e82735e9dd5786f0c07cf1e1ef3d68e8da1e9dc65d"
+      }
+    ]
+  }
+}
