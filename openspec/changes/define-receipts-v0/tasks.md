@@ -69,5 +69,5 @@
 Discovered during the first live `agent_end` receipt (`rcpt_20260623_125717_3b8b89`),
 where the claim collapsed to a trivial last line ("done") and `actor.model` was null.
 
-- [ ] 8.1 Improve claim extraction for OpenClaw receipts. Prefer the originating user request/task intent and a tool-action summary over the trailing assistant line; avoid trivial claims like "done". Skip or down-rank empty/low-signal completions.
-- [ ] 8.2 Resolve actor model metadata for OpenClaw receipts. Populate `actor.model` from a reliable source (hook `ctx`, resolved session model, or `llm_output`/`model_call_*` correlation) instead of leaving it null when `ctx.modelId` is absent.
+- [x] 8.1 Improve claim extraction for OpenClaw receipts. (Shared `src/openclaw-receipt.js`: strips subagent/timestamp preamble, prefers originating user request + tool-action summary, falls back away from trivial lines like "done".)
+- [x] 8.2 Resolve actor model metadata for OpenClaw receipts. (Plugin caches `model_call_started`/`model_call_ended` provider+model per `runId` and resolves `actor.model` on `agent_end`; records `integrations.openclaw.model_source`.)

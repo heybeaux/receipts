@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_131554_014b1f",
+  "created_at": "2026-06-23T13:15:54.170Z",
+  "updated_at": "2026-06-23T13:15:55.845Z",
+  "status": "needs-review",
+  "claim": {
+    "summary": "Refine OpenClaw receipts: claim extraction + actor.model (closes #1, #2)",
+    "details": "Centralized claim/model logic in src/openclaw-receipt.js shared by the CLI converter and the plugin. Claims now prefer the originating task request plus a tool-action summary and avoid trivial trailing lines like 'done'. The plugin caches model_call_started/model_call_ended provider+model per runId and resolves actor.model on agent_end, recording integrations.openclaw.model_source. Verified live after gateway restart."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "f51281ae7d55067cf7f0ba083864f29e46fc4da9",
+    "commit_after": "f51281ae7d55067cf7f0ba083864f29e46fc4da9",
+    "git_status": "M .receipts/active.json\n M README.md\n M openclaw/plugin.js\n M openspec/changes/define-receipts-v0/tasks.md\n M src/cli.js\n M test/unit.js\n?? .receipts/artifacts/rcpt_20260623_131554_014b1f/\n?? .receipts/receipts/rcpt_20260623_131554_014b1f.draft.json\n?? src/openclaw-receipt.js",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_131554_014b1f/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "openclaw/plugin.js",
+      "kind": "modified",
+      "summary": "M openclaw/plugin.js"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v0/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v0/tasks.md"
+    },
+    {
+      "path": "src/cli.js",
+      "kind": "modified",
+      "summary": "M src/cli.js"
+    },
+    {
+      "path": "test/unit.js",
+      "kind": "modified",
+      "summary": "M test/unit.js"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_131554_014b1f/",
+      "kind": "added",
+      "summary": "?? .receipts/artifacts/rcpt_20260623_131554_014b1f/"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_131554_014b1f.draft.json",
+      "kind": "added",
+      "summary": "?? .receipts/receipts/rcpt_20260623_131554_014b1f.draft.json"
+    },
+    {
+      "path": "src/openclaw-receipt.js",
+      "kind": "added",
+      "summary": "?? src/openclaw-receipt.js"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stderr.log",
+      "created_at": "2026-06-23T13:15:55.803Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "live verification",
+      "created_at": "2026-06-23T13:15:55.825Z",
+      "note": "Live verification receipt rcpt_20260623_131512_c0237a: claim reflects task + '1 tool call: exec'; actor.model='sakana/fugu'; model_source='model_call_hook'."
+    },
+    {
+      "id": "ev_003",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_131554_014b1f/git.diff",
+      "created_at": "2026-06-23T13:15:55.884Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed; 1 not run",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      },
+      {
+        "kind": "manual",
+        "label": "Long-running multi-tool turn claim quality (only single-tool turns verified live)",
+        "status": "not-run",
+        "explanation": "Recorded during receipt completion."
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "Claim text can still be long for verbose task prompts; truncation is applied but no semantic summarization yet."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Close issues #1 and #2; consider future semantic claim summarization if claims get noisy.",
+  "completed_at": "2026-06-23T13:15:55.845Z",
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "73b5b629c9589cd09ad033676f980e7cf304321dd3a311a34197bc82456dcaf8",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stdout.log",
+        "sha256": "687494df30eda3ca97c70a4058a7bb9786139221772014f2f9955994de8ff4be"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stderr.log",
+        "sha256": "5bc31df123a2e521acdd2c0d9477b367feec506471a91065d0a6b32c09089ed5"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_131554_014b1f/git.diff",
+        "sha256": "e1079652f67650886f05ec1779dc35dc5a8db5aa53a63af176f5d36197cc7b74"
+      }
+    ]
+  }
+}

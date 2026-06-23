@@ -1,9 +1,17 @@
-const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
-const { join, resolve } = require('node:path');
+'use strict';
+
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { join, relative, resolve } = require('node:path');
 const { createHash, randomBytes } = require('node:crypto');
 
 const { renderMarkdown } = require('../src/render-markdown');
 const { assertValidReceipt } = require('../src/schema');
+const {
+  resolveModelString,
+  sanitizeOpenClawPayload,
+  stringOrNull,
+  summarizeOpenClawClaim,
+} = require('../src/openclaw-receipt');
 
 const SCHEMA_VERSION = '0.1.0';
 const DEFAULT_CONFIG = {
@@ -14,17 +22,55 @@ const DEFAULT_CONFIG = {
   skipSessionKeyPrefixes: [],
 };
 
+// Bounded per-run model registry populated from model-call telemetry hooks,
+// which (unlike agent_end) reliably carry provider/model metadata.
+const MODEL_REGISTRY_LIMIT = 256;
+
+function createModelRegistry(limit = MODEL_REGISTRY_LIMIT) {
+  const map = new Map();
+  return {
+    record(runId, provider, model) {
+      const key = stringOrNull(runId);
+      const modelId = stringOrNull(model);
+      if (!key || !modelId) return;
+      map.set(key, { provider: stringOrNull(provider), model: modelId });
+      while (map.size > limit) map.delete(map.keys().next().value);
+    },
+    take(runId) {
+      const key = stringOrNull(runId);
+      if (!key || !map.has(key)) return undefined;
+      const value = map.get(key);
+      map.delete(key);
+      return value;
+    },
+    get size() {
+      return map.size;
+    },
+  };
+}
+
 const plugin = {
   id: 'receipts',
   name: 'Receipts',
   description: 'Generates local proof-of-work receipts from OpenClaw agent completion events.',
   register(api) {
+    const modelRegistry = createModelRegistry();
+
+    const recordModel = (event) => {
+      if (!event || typeof event !== 'object') return;
+      modelRegistry.record(event.runId, event.provider, event.model);
+    };
+    api.on('model_call_started', (event) => recordModel(event));
+    api.on('model_call_ended', (event) => recordModel(event));
+
     api.on('agent_end', async (event, ctx) => {
       const config = resolveConfig(api.pluginConfig);
+      const runId = stringOrNull(event?.runId) || stringOrNull(ctx?.runId);
+      const resolvedModel = modelRegistry.take(runId);
       if (!shouldCapture(event, ctx, config)) return;
 
       const workspaceDir = resolveWorkspaceDir(ctx, config, api);
-      const result = writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun: config.dryRun });
+      const result = writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun: config.dryRun, resolvedModel });
       const log = api.logger || console;
       if (config.dryRun) {
         log.info?.(`receipts: dry-run generated ${result.receipt.id}`);
@@ -86,10 +132,10 @@ function resolveWorkspaceDir(ctx, config, api) {
   return process.cwd();
 }
 
-function writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun = false }) {
+function writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun = false, resolvedModel }) {
   const root = resolve(workspaceDir || process.cwd());
   ensureLayout(root);
-  const receipt = createOpenClawReceipt({ event, ctx, root });
+  const receipt = createOpenClawReceipt({ event, ctx, root, resolvedModel });
   const artifactDir = join(root, '.receipts', 'artifacts', receipt.id);
   ensureDir(artifactDir);
   const eventArtifactPath = join(artifactDir, 'openclaw-agent-end.json');
@@ -119,16 +165,16 @@ function writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun = false }) {
   return { receipt, receiptPath, markdownPath };
 }
 
-function createOpenClawReceipt({ event, ctx, root }) {
+function createOpenClawReceipt({ event, ctx, root, resolvedModel }) {
   const now = new Date().toISOString();
   const messages = Array.isArray(event?.messages) ? event.messages : [];
-  const lastAssistant = findLastAssistantText(messages);
   const success = event?.success !== false;
   const runId = stringOrNull(event?.runId) || stringOrNull(ctx?.runId);
   const sessionKey = stringOrNull(ctx?.sessionKey);
   const sessionId = stringOrNull(ctx?.sessionId);
   const agentId = stringOrNull(ctx?.agentId) || 'unknown';
-  const model = [stringOrNull(ctx?.modelProviderId), stringOrNull(ctx?.modelId)].filter(Boolean).join('/') || stringOrNull(ctx?.modelId) || null;
+  const model = resolveModelString({ ctx: ctx || {}, resolvedModel });
+  const claimDetails = describeClaimDetails({ event: event || {}, messages, success });
   return {
     schema_version: SCHEMA_VERSION,
     id: createReceiptId(),
@@ -137,8 +183,8 @@ function createOpenClawReceipt({ event, ctx, root }) {
     completed_at: now,
     status: 'needs-review',
     claim: {
-      summary: summarizeOpenClawClaim({ event: event || {}, ctx: ctx || {}, lastAssistant }),
-      details: lastAssistant || (success ? 'OpenClaw agent turn completed.' : `OpenClaw agent turn failed: ${stringOrNull(event?.error) || 'unknown error'}`),
+      summary: summarizeOpenClawClaim({ event: event || {}, ctx: ctx || {}, messages }),
+      details: claimDetails,
     },
     actor: { type: 'agent', id: agentId, model },
     task: { source: 'openclaw', id: runId, url: null },
@@ -185,12 +231,21 @@ function createOpenClawReceipt({ event, ctx, root }) {
         session_id: sessionId,
         message_provider: stringOrNull(ctx?.messageProvider),
         channel_id: stringOrNull(ctx?.channelId),
+        model_source: resolveModelString({ ctx: ctx || {} }) ? 'agent_end_ctx' : (resolvedModel ? 'model_call_hook' : 'unknown'),
       },
     },
     recommended_next_action: success
       ? 'Review the receipt and any workspace diffs before treating the task as approved.'
       : 'Inspect the OpenClaw error and rerun or repair the failed task before approval.',
   };
+}
+
+function describeClaimDetails({ event, messages, success }) {
+  const { findLastAssistantText } = require('../src/openclaw-receipt');
+  const lastAssistant = findLastAssistantText(messages);
+  if (lastAssistant) return lastAssistant;
+  if (success) return 'OpenClaw agent turn completed.';
+  return `OpenClaw agent turn failed: ${stringOrNull(event?.error) || 'unknown error'}`;
 }
 
 function ensureLayout(root) {
@@ -206,76 +261,6 @@ function ensureLayout(root) {
       created_at: new Date().toISOString(),
     });
   }
-}
-
-function sanitizeOpenClawPayload({ event, ctx }) {
-  return {
-    event: {
-      runId: stringOrNull(event?.runId),
-      success: event?.success !== false,
-      error: stringOrNull(event?.error),
-      durationMs: typeof event?.durationMs === 'number' ? event.durationMs : undefined,
-      messages: Array.isArray(event?.messages) ? event.messages.map(sanitizeMessage).slice(-20) : [],
-    },
-    ctx: {
-      agentId: stringOrNull(ctx?.agentId),
-      sessionId: stringOrNull(ctx?.sessionId),
-      sessionKey: stringOrNull(ctx?.sessionKey),
-      runId: stringOrNull(ctx?.runId),
-      workspaceDir: stringOrNull(ctx?.workspaceDir),
-      modelProviderId: stringOrNull(ctx?.modelProviderId),
-      modelId: stringOrNull(ctx?.modelId),
-      messageProvider: stringOrNull(ctx?.messageProvider),
-      channelId: stringOrNull(ctx?.channelId),
-    },
-  };
-}
-
-function sanitizeMessage(message) {
-  if (!message || typeof message !== 'object') return { type: typeof message, text: truncate(String(message), 1000) };
-  const role = stringOrNull(message.role) || stringOrNull(message.type) || 'unknown';
-  const text = extractMessageText(message);
-  return {
-    role,
-    type: stringOrNull(message.type),
-    toolName: stringOrNull(message.toolName) || stringOrNull(message.name),
-    content: text ? truncate(text, 2000) : undefined,
-  };
-}
-
-function summarizeOpenClawClaim({ event, ctx, lastAssistant }) {
-  if (event.success === false) return `OpenClaw agent turn failed${event.error ? `: ${truncate(String(event.error), 96)}` : ''}`;
-  const agentId = stringOrNull(ctx.agentId) || 'agent';
-  if (lastAssistant) return `OpenClaw ${agentId} completed: ${truncate(lastAssistant.replace(/\s+/g, ' '), 120)}`;
-  return `OpenClaw ${agentId} completed an agent turn`;
-}
-
-function findLastAssistantText(messages) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i];
-    if (!message || typeof message !== 'object') continue;
-    const role = stringOrNull(message.role) || stringOrNull(message.type);
-    if (role && !/assistant|agent|message_end|output/i.test(role)) continue;
-    const text = extractMessageText(message);
-    if (text) return truncate(text.trim(), 2000);
-  }
-  return null;
-}
-
-function extractMessageText(message) {
-  for (const key of ['content', 'text', 'message']) {
-    const value = message[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  const content = message.content;
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => part && typeof part === 'object' && typeof part.text === 'string' ? part.text : '')
-      .filter(Boolean)
-      .join('\n')
-      .trim() || null;
-  }
-  return null;
 }
 
 function updateVerificationSummary(receipt) {
@@ -299,7 +284,6 @@ function attachIntegrity(receipt, root) {
       if (!entry[key]) continue;
       const artifactPath = resolve(root, entry[key]);
       if (!existsSync(artifactPath)) continue;
-      const { readFileSync } = require('node:fs');
       artifacts.push({ path: normalizePath(root, artifactPath), sha256: createHash('sha256').update(readFileSync(artifactPath)).digest('hex') });
     }
   }
@@ -330,22 +314,15 @@ function writeJson(path, value) {
 }
 
 function normalizePath(root, path) {
-  const relative = require('node:path').relative(root, path);
-  return relative.startsWith('..') ? path : relative || '.';
-}
-
-function stringOrNull(value) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function truncate(text, max) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  const rel = relative(root, path);
+  return rel.startsWith('..') ? path : rel || '.';
 }
 
 module.exports = plugin;
 module.exports.default = plugin;
 module.exports.__private = {
   DEFAULT_CONFIG,
+  createModelRegistry,
   hasToolEvidence,
   resolveConfig,
   shouldCapture,

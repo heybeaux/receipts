@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_131554_014b1f",
+  "created_at": "2026-06-23T13:15:54.170Z",
+  "updated_at": "2026-06-23T13:15:55.825Z",
+  "status": "draft",
+  "claim": {
+    "summary": "Refine OpenClaw receipts: claim extraction + actor.model (closes #1, #2)",
+    "details": "Centralized claim/model logic in src/openclaw-receipt.js shared by the CLI converter and the plugin. Claims now prefer the originating task request plus a tool-action summary and avoid trivial trailing lines like 'done'. The plugin caches model_call_started/model_call_ended provider+model per runId and resolves actor.model on agent_end, recording integrations.openclaw.model_source. Verified live after gateway restart."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {},
+  "changes": [],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_131554_014b1f/command-001.stderr.log",
+      "created_at": "2026-06-23T13:15:55.803Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "live verification",
+      "created_at": "2026-06-23T13:15:55.825Z",
+      "note": "Live verification receipt rcpt_20260623_131512_c0237a: claim reflects task + '1 tool call: exec'; actor.model='sakana/fugu'; model_source='model_call_hook'."
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "unknown",
+    "notes": [],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Review the receipt and supporting evidence."
+}

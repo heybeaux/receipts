@@ -6,6 +6,13 @@ const { spawnSync } = require('node:child_process');
 
 const { renderMarkdown } = require('../src/render-markdown');
 const { validateReceipt } = require('../src/schema');
+const {
+  extractUserRequest,
+  isTrivialClaimText,
+  resolveModelString,
+  summarizeOpenClawClaim,
+  summarizeTools,
+} = require('../src/openclaw-receipt');
 const receiptsPlugin = require('../openclaw/plugin.js');
 
 const sampleReceipt = {
@@ -103,6 +110,48 @@ assert(pluginResult.receipt.id.startsWith('rcpt_'));
 assert(pluginResult.receipt.integrations.openclaw.run_id === 'run_plugin');
 assert(pluginResult.receipt.workspace.git_error.includes('safe in-process'));
 assert(readFileSync(pluginResult.receiptPath, 'utf8').includes('openclaw-agent-end'));
+
+// #1 Claim extraction: subagent preamble is stripped and tool summary is included.
+const subagentMessages = [
+  { role: 'user', content: '[Tue 2026-06-23 05:57 PDT] [Subagent Context] You are running as a subagent (depth 1/1).\n\n[Subagent Task]\n\nRun the migration and verify tests.\n\nBegin. Execute the assigned task to completion.' },
+  { role: 'assistant' },
+  { role: 'toolResult', toolName: 'exec', content: 'ok' },
+  { role: 'assistant', content: 'done' },
+];
+assert.equal(extractUserRequest(subagentMessages), 'Run the migration and verify tests.');
+assert.equal(summarizeTools(subagentMessages).total, 1);
+const subagentClaim = summarizeOpenClawClaim({ event: { success: true }, ctx: { agentId: 'nori' }, messages: subagentMessages });
+assert(subagentClaim.includes('Run the migration and verify tests.'), subagentClaim);
+assert(subagentClaim.includes('1 tool call: exec'), subagentClaim);
+assert(!/completed: done/.test(subagentClaim), subagentClaim);
+
+// Trivial last-line fallback never produces a 'done' claim when there is no request.
+assert.equal(isTrivialClaimText('done'), true);
+assert.equal(isTrivialClaimText('Implemented the feature'), false);
+const trivialClaim = summarizeOpenClawClaim({ event: { success: true }, ctx: { agentId: 'nori' }, messages: [{ role: 'assistant', content: 'done' }] });
+assert(!/completed: done/.test(trivialClaim), trivialClaim);
+assert(trivialClaim.includes('completed an agent turn'), trivialClaim);
+
+// Failure claim path.
+const failClaim = summarizeOpenClawClaim({ event: { success: false, error: 'boom' }, ctx: { agentId: 'nori' }, messages: [] });
+assert(failClaim.includes('task failed'), failClaim);
+
+// #2 Model metadata: ctx wins; otherwise resolved model-call hook value is used.
+assert.equal(resolveModelString({ ctx: { modelProviderId: 'sakana', modelId: 'fugu' } }), 'sakana/fugu');
+assert.equal(resolveModelString({ ctx: {}, resolvedModel: { provider: 'sakana', model: 'fugu-ultra' } }), 'sakana/fugu-ultra');
+assert.equal(resolveModelString({ ctx: {} }), null);
+
+const registry = receiptsPlugin.__private.createModelRegistry();
+registry.record('run_model', 'sakana', 'fugu');
+const modelWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-model-'));
+const modelResult = receiptsPlugin.__private.writeOpenClawReceipt({
+  event: { runId: 'run_model', success: true, messages: [{ role: 'tool', toolName: 'exec', content: 'ok' }, { role: 'assistant', content: 'Built it.' }] },
+  ctx: { agentId: 'nori', sessionKey: 'agent:nori:x', runId: 'run_model' },
+  workspaceDir: modelWorkdir,
+  resolvedModel: registry.take('run_model'),
+});
+assert.equal(modelResult.receipt.actor.model, 'sakana/fugu');
+assert.equal(modelResult.receipt.integrations.openclaw.model_source, 'model_call_hook');
 
 console.log('Unit tests passed');
 

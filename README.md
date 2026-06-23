@@ -100,6 +100,8 @@ Default behavior captures failed turns and successful turns that include tool ev
 
 The adapter writes receipts into the agent turn workspace by default. It records OpenClaw run/session metadata under `integrations.openclaw` and stores a bounded `openclaw-agent-end.json` evidence artifact. The runtime plugin writes receipts in-process and does not shell out, so OpenClaw's dangerous-code scanner can install it without `--dangerously-force-unsafe-install`.
 
+Claims are derived from the originating task request plus a tool-action summary (not just the trailing assistant line), and `actor.model` is resolved from `model_call_started`/`model_call_ended` telemetry when `agent_end` context omits the model. The resolution source is recorded as `integrations.openclaw.model_source`.
+
 For tests or custom integrations, the CLI can convert an exported OpenClaw `agent_end` event directly:
 
 ```bash
