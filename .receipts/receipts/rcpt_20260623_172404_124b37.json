@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0.0",
+  "id": "rcpt_20260623_172404_124b37",
+  "created_at": "2026-06-23T17:24:04.408Z",
+  "updated_at": "2026-06-23T17:24:04.471Z",
+  "status": "self-verified",
+  "claim": {
+    "summary": "Close Receipts v1 release",
+    "details": "Published @beaux-riel/receipts@1.0.0 to ClawHub and marked the final OpenSpec v1 release task complete."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "manual",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "379c46004239f65b714e1e49139ef46896f22ec3",
+    "commit_after": "379c46004239f65b714e1e49139ef46896f22ec3",
+    "git_status": "M .receipts/active.json\n M openspec/changes/define-receipts-v1/tasks.md\n?? .receipts/receipts/rcpt_20260623_172404_124b37.draft.json",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_172404_124b37/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v1/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v1/tasks.md"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "Final v1 local validation",
+      "created_at": "2026-06-23T17:24:04.428Z",
+      "command": "npm run lint && npm test && npm run build",
+      "exit_code": 0,
+      "note": "Syntax lint, OpenSpec/unit/smoke tests, and npm pack dry-run passed after closing the final v1 task."
+    },
+    {
+      "id": "ev_002",
+      "kind": "release",
+      "label": "ClawHub v1 publish",
+      "created_at": "2026-06-23T17:24:04.449Z",
+      "note": "ClawHub publish succeeded: @beaux-riel/receipts@1.0.0 id rd7bfq3jkset42a6q87awe74p9896aek. Inspect by package name was not visible immediately after publish, likely pending automated scan/visibility."
+    },
+    {
+      "id": "ev_003",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_172404_124b37/git.diff",
+      "created_at": "2026-06-23T17:24:04.512Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "Final v1 local validation",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm run lint && npm test && npm run build",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "ClawHub package inspect was not visible immediately after publish; scan/visibility may still be pending."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Monitor ClawHub scan/visibility for @beaux-riel/receipts@1.0.0.",
+  "completed_at": "2026-06-23T17:24:04.471Z",
+  "policy": {
+    "verdict": "self-verified",
+    "requested": "self-verified",
+    "self_verified_allowed": true,
+    "enforced": true,
+    "reasons": [
+      "all verification checks passed"
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "e6ae02c1521f6e67f25bdc692e68e9f209db036aa27f0cdf333b17ed108b7638",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_172404_124b37/git.diff",
+        "sha256": "caad265f8305fb29cc7c1434d59b818f2b4da8e9fdc628814e5ad1c53bc012ca"
+      }
+    ]
+  }
+}

@@ -39,4 +39,4 @@
 - [x] 4.4 Run unit and smoke tests.
 - [x] 4.5 Dogfood Receipts on the v1 implementation sprint.
 - [x] 4.6 Commit and push v1 implementation.
-- [ ] 4.7 Publish a follow-up ClawHub release when ready.
+- [x] 4.7 Publish a follow-up ClawHub release when ready.

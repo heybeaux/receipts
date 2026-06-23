@@ -1,0 +1,23 @@
+diff --git a/.receipts/active.json b/.receipts/active.json
+index 2e56b42..1c9aaf1 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_172146_5e2ba5",
+-  "updated_at": "2026-06-23T17:21:46.282Z"
++  "id": "rcpt_20260623_172404_124b37",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_172404_124b37.draft.json",
++  "updated_at": "2026-06-23T17:24:04.449Z"
+ }
+diff --git a/openspec/changes/define-receipts-v1/tasks.md b/openspec/changes/define-receipts-v1/tasks.md
+index f3c52ef..7464c5f 100644
+--- a/openspec/changes/define-receipts-v1/tasks.md
++++ b/openspec/changes/define-receipts-v1/tasks.md
+@@ -39,4 +39,4 @@
+ - [x] 4.4 Run unit and smoke tests.
+ - [x] 4.5 Dogfood Receipts on the v1 implementation sprint.
+ - [x] 4.6 Commit and push v1 implementation.
+-- [ ] 4.7 Publish a follow-up ClawHub release when ready.
++- [x] 4.7 Publish a follow-up ClawHub release when ready.
