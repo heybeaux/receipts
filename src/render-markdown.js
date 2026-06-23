@@ -15,6 +15,7 @@ function renderMarkdown(receipt) {
     receipt.risk.rollback ? `Rollback: ${receipt.risk.rollback}` : null,
   ].filter(Boolean);
   const integrity = renderIntegrity(receipt.integrity);
+  const policy = renderPolicy(receipt.policy);
 
   return `# Receipt: ${receipt.claim.summary}
 
@@ -41,6 +42,10 @@ ${evidence}
 **Summary:** ${receipt.verification.summary}
 
 ${checks}
+
+## Policy
+
+${policy}
 
 ## Risks
 
@@ -84,6 +89,19 @@ function renderCheckLine(check) {
   return `- ${icon} **${check.status}** — ${check.label}${details.length ? ` (${details.join('; ')})` : ''}`;
 }
 
+function renderPolicy(policy) {
+  if (!policy) return '- No policy verdict recorded.';
+  const lines = [];
+  if (policy.verdict) lines.push(`- Verdict: **${policy.verdict}**`);
+  if (policy.requested) lines.push(`- Requested: ${policy.requested}`);
+  if (policy.self_verified_allowed !== undefined) lines.push(`- Self-verified allowed: ${policy.self_verified_allowed ? 'yes' : 'no'}`);
+  if (policy.reasons && policy.reasons.length) {
+    lines.push('- Reasons:');
+    for (const reason of policy.reasons) lines.push(`  - ${reason}`);
+  }
+  return lines.length ? lines.join('\n') : '- No policy verdict recorded.';
+}
+
 function renderIntegrity(integrity) {
   if (!integrity) return '- Not recorded.';
   const lines = [];
@@ -95,4 +113,4 @@ function renderIntegrity(integrity) {
   return lines.length ? lines.join('\n') : '- Not recorded.';
 }
 
-module.exports = { renderMarkdown, renderEvidenceLine, renderCheckLine, renderIntegrity };
+module.exports = { renderMarkdown, renderEvidenceLine, renderCheckLine, renderPolicy, renderIntegrity };

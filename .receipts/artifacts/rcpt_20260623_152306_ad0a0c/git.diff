@@ -1,0 +1,999 @@
+diff --git a/.receipts/active.json b/.receipts/active.json
+index 0e00b0e..dba376e 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_131554_014b1f",
+-  "updated_at": "2026-06-23T13:15:55.845Z"
++  "id": "rcpt_20260623_152306_ad0a0c",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_152306_ad0a0c.draft.json",
++  "updated_at": "2026-06-23T15:23:06.193Z"
+ }
+diff --git a/README.md b/README.md
+index 4775805..f2ac54f 100644
+--- a/README.md
++++ b/README.md
+@@ -109,6 +109,9 @@ receipts done \
+   --risk "OAuth provider edge cases not manually tested." \
+   --not-run "Browser OAuth smoke test" \
+   --next "Review diff and run browser smoke test."
++receipts list                                   # browse completed receipts
++receipts show latest                            # inspect the newest receipt
++receipts verify latest                          # recompute payload + artifact hashes
+ ```
+ 
+ Generated artifacts live under `.receipts/`:
+@@ -132,10 +135,51 @@ Generated artifacts live under `.receipts/`:
+ | `receipts claim "<summary>"` | Start a draft receipt and mark it active. Flags: `--details`, `--actor-id`, `--actor-type`, `--model`, `--task-source`, `--task-id`, `--task-url`. |
+ | `receipts evidence add` | Attach evidence to the active receipt: `--file`, `--link`, `--note`, `--cmd`, `--exit-code`, `--output`, `--kind`, `--label`. |
+ | `receipts run -- <cmd>` | Run a command, capture stdout/stderr/exit code as evidence, and return the command's exit code. |
+-| `receipts done` | Collect git/workspace metadata, render JSON + Markdown, hash for integrity. Flags: `--risk`, `--assumption`, `--rollback`, `--not-run`, `--next`, `--self-verified`. |
++| `receipts done` | Collect git/workspace metadata, apply policy verdicts, render JSON + Markdown, hash for integrity. Flags: `--risk`, `--assumption`, `--rollback`, `--not-run`, `--next`, `--self-verified`. |
++| `receipts list` | List completed receipts newest-first. Flags: `--json`, `--limit <n>`, `--status <status>`. |
++| `receipts show [id|latest]` | Show one receipt. Defaults to Markdown; flags: `--json`, `--markdown`. |
++| `receipts verify [id|latest]` | Recompute receipt payload and artifact hashes. Flag: `--json`; exits 0 clean, 1 failed verification. |
+ | `receipts github comment --pr <n>` | Post the latest (or `--receipt <id>`) receipt Markdown to a GitHub PR. `--repo`, `--dry-run`. |
+ | `receipts openclaw agent-end --event <file>` | Convert an exported OpenClaw `agent_end` payload into a receipt (used by tests / custom integrations). |
+ 
++### Browse, inspect, and verify receipts
++
++```bash
++receipts list
++receipts list --status needs-review --limit 5
++receipts list --json
++
++receipts show latest
++receipts show rcpt_20260623_131512_c0237a --json
++
++receipts verify latest
++receipts verify rcpt_20260623_131512_c0237a --json
++```
++
++`receipts verify` checks two things:
++
++1. The receipt payload hash still matches the JSON content with the `integrity` block removed.
++2. Every artifact listed in `integrity.artifacts` still exists and matches its recorded SHA-256.
++
++Exit codes are intentionally CI-friendly:
++
++- `0` — clean
++- `1` — payload mismatch, artifact mismatch, missing artifact, missing integrity, or malformed receipt
++- `64` — usage error
++- `65` — no matching receipt
++- `66` — receipt/artifact read failure
++
++### Policy verdicts
++
++Receipts is conservative about `self-verified`. Passing `--self-verified` is a request, not a blank cheque. The CLI records a `policy` block and downgrades the final status to `needs-review` when:
++
++- no verification checks exist,
++- any check failed,
++- any check is pending, or
++- any check is marked `not-run`.
++
++A receipt can become `self-verified` only when at least one verification check passed and none failed/pending/not-run. `human-approved` is never assigned automatically.
++
+ ### Post a receipt to a GitHub PR
+ 
+ Requires an authenticated `gh` CLI.
+@@ -202,14 +246,14 @@ The portable contract lives at [`schemas/receipt.schema.json`](./schemas/receipt
+ - `task`, `workspace`, `changes`
+ - `evidence[]`, `verification` (`summary`, `checks[]`)
+ - `risk` (`level`, `notes`, `assumptions`, `rollback`)
+-- `integrations`, `integrity`, `recommended_next_action`
++- `integrations`, `policy`, `integrity`, `recommended_next_action`
+ 
+ **Status values:** `draft`, `self-verified`, `needs-review`, `human-approved`, `rejected`, `superseded`.
+ **Check states:** `passed`, `failed`, `pending`, `not-run`.
+ 
+ ### Integrity
+ 
+-On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of every captured artifact under `integrity`, so tampering with a stored receipt or its evidence is detectable.
++On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of every captured artifact under `integrity`, so tampering with a stored receipt or its evidence is detectable. Use `receipts verify [id|latest]` to recompute those hashes later.
+ 
+ ---
+ 
+@@ -217,9 +261,11 @@ On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash o
+ 
+ ```text
+ bin/receipts.js            thin executable
+-src/cli.js                 command dispatch + workflow (init/claim/evidence/run/done/github/openclaw)
++src/cli.js                 command dispatch + workflow (init/claim/evidence/run/done/list/show/verify/github/openclaw)
+ src/render-markdown.js     Markdown rendering
+ src/schema.js              receipt validation
++src/integrity.js           shared payload/artifact hashing + verification
++src/policy.js              conservative status/policy verdict logic
+ src/openclaw-receipt.js    shared claim extraction + model resolution (CLI + plugin)
+ openclaw/plugin.js         OpenClaw agent_end plugin adapter (in-process, no shell-out)
+ schemas/receipt.schema.json published JSON Schema
+diff --git a/openclaw/plugin.js b/openclaw/plugin.js
+index 53754f2..59ccff8 100644
+--- a/openclaw/plugin.js
++++ b/openclaw/plugin.js
+@@ -1,9 +1,11 @@
+ 'use strict';
+ 
+-const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
++const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
+ const { join, relative, resolve } = require('node:path');
+-const { createHash, randomBytes } = require('node:crypto');
++const { randomBytes } = require('node:crypto');
+ 
++const { attachIntegrity } = require('../src/integrity');
++const { applyReceiptPolicy } = require('../src/policy');
+ const { renderMarkdown } = require('../src/render-markdown');
+ const { assertValidReceipt } = require('../src/schema');
+ const {
+@@ -148,6 +150,7 @@ function writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun = false, resolv
+     created_at: receipt.created_at,
+   });
+   updateVerificationSummary(receipt);
++  applyReceiptPolicy(receipt, { requestedStatus: 'needs-review' });
+   attachIntegrity(receipt, root);
+   assertValidReceipt(receipt);
+ 
+@@ -277,24 +280,6 @@ function updateVerificationSummary(receipt) {
+   ].filter(Boolean).join('; ') || 'Verification recorded.';
+ }
+ 
+-function attachIntegrity(receipt, root) {
+-  const artifacts = [];
+-  for (const entry of receipt.evidence || []) {
+-    for (const key of ['path', 'output', 'stdout', 'stderr']) {
+-      if (!entry[key]) continue;
+-      const artifactPath = resolve(root, entry[key]);
+-      if (!existsSync(artifactPath)) continue;
+-      artifacts.push({ path: normalizePath(root, artifactPath), sha256: createHash('sha256').update(readFileSync(artifactPath)).digest('hex') });
+-    }
+-  }
+-  const payload = JSON.stringify({ ...receipt, integrity: undefined });
+-  receipt.integrity = {
+-    algorithm: 'sha256',
+-    receipt_payload_sha256: createHash('sha256').update(payload).digest('hex'),
+-    artifacts,
+-  };
+-}
+-
+ function nextEvidenceId(receipt) {
+   return `ev_${String((receipt.evidence || []).length + 1).padStart(3, '0')}`;
+ }
+diff --git a/openspec/changes/define-receipts-v1/tasks.md b/openspec/changes/define-receipts-v1/tasks.md
+index b74cf35..f930d10 100644
+--- a/openspec/changes/define-receipts-v1/tasks.md
++++ b/openspec/changes/define-receipts-v1/tasks.md
+@@ -2,28 +2,28 @@
+ 
+ ## 1. Trust Core
+ 
+-- [ ] 1.1 Extract shared integrity helpers so writing and verifying use the same canonical payload/hash logic.
+-- [ ] 1.2 Implement `receipts verify [<receipt-id>|latest]` with human-readable output and explicit exit codes.
+-- [ ] 1.3 Add `receipts verify --json` for CI/tool consumption.
+-- [ ] 1.4 Add tests proving clean receipts verify successfully.
+-- [ ] 1.5 Add tests proving receipt payload tampering is detected.
+-- [ ] 1.6 Add tests proving artifact tampering and missing artifacts are detected.
+-- [ ] 1.7 Implement policy verdict evaluation for `receipts done`.
+-- [ ] 1.8 Enforce that `--self-verified` downgrades to `needs-review` when checks failed, are pending/not-run, or no checks exist.
+-- [ ] 1.9 Record policy verdict/reasons in completed receipts.
++- [x] 1.1 Extract shared integrity helpers so writing and verifying use the same canonical payload/hash logic.
++- [x] 1.2 Implement `receipts verify [<receipt-id>|latest]` with human-readable output and explicit exit codes.
++- [x] 1.3 Add `receipts verify --json` for CI/tool consumption.
++- [x] 1.4 Add tests proving clean receipts verify successfully.
++- [x] 1.5 Add tests proving receipt payload tampering is detected.
++- [x] 1.6 Add tests proving artifact tampering and missing artifacts are detected.
++- [x] 1.7 Implement policy verdict evaluation for `receipts done`.
++- [x] 1.8 Enforce that `--self-verified` downgrades to `needs-review` when checks failed, are pending/not-run, or no checks exist.
++- [x] 1.9 Record policy verdict/reasons in completed receipts.
+ 
+ ## 2. Local UX Core
+ 
+-- [ ] 2.1 Implement `receipts list` with default compact output.
+-- [ ] 2.2 Add `receipts list --json`, `--limit`, and `--status`.
+-- [ ] 2.3 Implement `receipts show [<receipt-id>|latest]` with Markdown-first default output.
+-- [ ] 2.4 Add `receipts show --json` and `--markdown`.
+-- [ ] 2.5 Add tests for list/show latest and explicit id resolution.
++- [x] 2.1 Implement `receipts list` with default compact output.
++- [x] 2.2 Add `receipts list --json`, `--limit`, and `--status`.
++- [x] 2.3 Implement `receipts show [<receipt-id>|latest]` with Markdown-first default output.
++- [x] 2.4 Add `receipts show --json` and `--markdown`.
++- [x] 2.5 Add tests for list/show latest and explicit id resolution.
+ 
+ ## 3. Docs and Adoption
+ 
+-- [ ] 3.1 Update README quickstart for v1 commands (`list`, `show`, `verify`).
+-- [ ] 3.2 Add a trust workflow section: generate → verify → tamper detection.
++- [x] 3.1 Update README quickstart for v1 commands (`list`, `show`, `verify`).
++- [x] 3.2 Add a trust workflow section: generate → verify → tamper detection.
+ - [ ] 3.3 Add OpenClaw adoption docs, including conversation-access opt-in and ClawHub install path.
+ - [ ] 3.4 Add GitHub PR comment adoption docs.
+ - [ ] 3.5 Add CI-style usage docs, including verify exit codes.
+@@ -31,10 +31,10 @@
+ 
+ ## 4. Spec, Versioning, and Release
+ 
+-- [ ] 4.1 Update receipt JSON Schema for v1 policy metadata.
++- [x] 4.1 Update receipt JSON Schema for v1 policy metadata.
+ - [ ] 4.2 Bump package/schema version when implementation is complete.
+-- [ ] 4.3 Validate OpenSpec change and all specs.
+-- [ ] 4.4 Run unit and smoke tests.
+-- [ ] 4.5 Dogfood Receipts on the v1 implementation sprint.
+-- [ ] 4.6 Commit and push v1 implementation.
++- [x] 4.3 Validate OpenSpec change and all specs.
++- [x] 4.4 Run unit and smoke tests.
++- [x] 4.5 Dogfood Receipts on the v1 implementation sprint.
++- [x] 4.6 Commit and push v1 implementation.
+ - [ ] 4.7 Publish a follow-up ClawHub release when ready.
+diff --git a/schemas/receipt.schema.json b/schemas/receipt.schema.json
+index eec765c..2fce350 100644
+--- a/schemas/receipt.schema.json
++++ b/schemas/receipt.schema.json
+@@ -3,24 +3,223 @@
+   "$id": "https://github.com/heybeaux/receipts/schemas/receipt.schema.json",
+   "title": "Receipt",
+   "type": "object",
+-  "required": ["schema_version", "id", "created_at", "updated_at", "status", "claim", "actor", "workspace", "changes", "evidence", "verification", "risk", "recommended_next_action"],
++  "required": [
++    "schema_version",
++    "id",
++    "created_at",
++    "updated_at",
++    "status",
++    "claim",
++    "actor",
++    "workspace",
++    "changes",
++    "evidence",
++    "verification",
++    "risk",
++    "recommended_next_action"
++  ],
+   "properties": {
+-    "schema_version": { "const": "0.1.0" },
+-    "id": { "type": "string", "pattern": "^rcpt_" },
+-    "created_at": { "type": "string" },
+-    "updated_at": { "type": "string" },
+-    "completed_at": { "type": "string" },
+-    "status": { "type": "string", "enum": ["draft", "self-verified", "needs-review", "human-approved", "rejected", "superseded"] },
+-    "claim": { "type": "object", "required": ["summary"], "properties": { "summary": { "type": "string", "minLength": 1 }, "details": { "type": ["string", "null"] } } },
+-    "actor": { "type": "object", "required": ["type", "id"], "properties": { "type": { "type": "string", "minLength": 1 }, "id": { "type": "string", "minLength": 1 }, "model": { "type": ["string", "null"] } } },
+-    "task": { "type": "object" },
+-    "workspace": { "type": "object" },
+-    "changes": { "type": "array", "items": { "type": "object" } },
+-    "evidence": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "label"] } },
+-    "verification": { "type": "object", "required": ["summary", "checks"], "properties": { "summary": { "type": "string" }, "checks": { "type": "array", "items": { "type": "object", "required": ["label", "status"], "properties": { "label": { "type": "string" }, "status": { "type": "string", "enum": ["passed", "failed", "pending", "not-run"] } } } } } },
+-    "risk": { "type": "object", "required": ["level", "notes", "assumptions"], "properties": { "level": { "type": "string" }, "notes": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "rollback": { "type": ["string", "null"] } } },
+-    "integrations": { "type": "object" },
+-    "integrity": { "type": "object" },
+-    "recommended_next_action": { "type": "string" }
++    "schema_version": {
++      "const": "0.1.0"
++    },
++    "id": {
++      "type": "string",
++      "pattern": "^rcpt_"
++    },
++    "created_at": {
++      "type": "string"
++    },
++    "updated_at": {
++      "type": "string"
++    },
++    "completed_at": {
++      "type": "string"
++    },
++    "status": {
++      "type": "string",
++      "enum": [
++        "draft",
++        "self-verified",
++        "needs-review",
++        "human-approved",
++        "rejected",
++        "superseded"
++      ]
++    },
++    "claim": {
++      "type": "object",
++      "required": [
++        "summary"
++      ],
++      "properties": {
++        "summary": {
++          "type": "string",
++          "minLength": 1
++        },
++        "details": {
++          "type": [
++            "string",
++            "null"
++          ]
++        }
++      }
++    },
++    "actor": {
++      "type": "object",
++      "required": [
++        "type",
++        "id"
++      ],
++      "properties": {
++        "type": {
++          "type": "string",
++          "minLength": 1
++        },
++        "id": {
++          "type": "string",
++          "minLength": 1
++        },
++        "model": {
++          "type": [
++            "string",
++            "null"
++          ]
++        }
++      }
++    },
++    "task": {
++      "type": "object"
++    },
++    "workspace": {
++      "type": "object"
++    },
++    "changes": {
++      "type": "array",
++      "items": {
++        "type": "object"
++      }
++    },
++    "evidence": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "required": [
++          "id",
++          "kind",
++          "label"
++        ]
++      }
++    },
++    "verification": {
++      "type": "object",
++      "required": [
++        "summary",
++        "checks"
++      ],
++      "properties": {
++        "summary": {
++          "type": "string"
++        },
++        "checks": {
++          "type": "array",
++          "items": {
++            "type": "object",
++            "required": [
++              "label",
++              "status"
++            ],
++            "properties": {
++              "label": {
++                "type": "string"
++              },
++              "status": {
++                "type": "string",
++                "enum": [
++                  "passed",
++                  "failed",
++                  "pending",
++                  "not-run"
++                ]
++              }
++            }
++          }
++        }
++      }
++    },
++    "risk": {
++      "type": "object",
++      "required": [
++        "level",
++        "notes",
++        "assumptions"
++      ],
++      "properties": {
++        "level": {
++          "type": "string"
++        },
++        "notes": {
++          "type": "array",
++          "items": {
++            "type": "string"
++          }
++        },
++        "assumptions": {
++          "type": "array",
++          "items": {
++            "type": "string"
++          }
++        },
++        "rollback": {
++          "type": [
++            "string",
++            "null"
++          ]
++        }
++      }
++    },
++    "integrations": {
++      "type": "object"
++    },
++    "integrity": {
++      "type": "object"
++    },
++    "recommended_next_action": {
++      "type": "string"
++    },
++    "policy": {
++      "type": "object",
++      "required": [
++        "verdict",
++        "reasons",
++        "enforced"
++      ],
++      "properties": {
++        "verdict": {
++          "type": "string",
++          "enum": [
++            "self-verified",
++            "needs-review",
++            "human-approved",
++            "rejected",
++            "superseded"
++          ]
++        },
++        "requested": {
++          "type": "string"
++        },
++        "self_verified_allowed": {
++          "type": "boolean"
++        },
++        "enforced": {
++          "type": "boolean"
++        },
++        "reasons": {
++          "type": "array",
++          "items": {
++            "type": "string"
++          }
++        }
++      }
++    }
+   }
+ }
+diff --git a/src/cli.js b/src/cli.js
+index 87088e8..e2bd4f9 100644
+--- a/src/cli.js
++++ b/src/cli.js
+@@ -1,9 +1,11 @@
+ 
+ const { spawnSync, execFileSync } = require('node:child_process');
+-const { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
++const { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
+ const { basename, dirname, isAbsolute, join, relative, resolve } = require('node:path');
+-const { createHash, randomBytes } = require('node:crypto');
++const { randomBytes } = require('node:crypto');
+ const { assertValidReceipt } = require('./schema');
++const { attachIntegrity, verifyReceiptIntegrity } = require('./integrity');
++const { applyReceiptPolicy } = require('./policy');
+ const { renderMarkdown } = require('./render-markdown');
+ const {
+   findLastAssistantText,
+@@ -42,6 +44,15 @@ function main(args = process.argv.slice(2)) {
+       case 'done':
+         done(args);
+         break;
++      case 'verify':
++        verify(args);
++        break;
++      case 'list':
++        listReceipts(args);
++        break;
++      case 'show':
++        showReceipt(args);
++        break;
+       case 'github':
+         github(args);
+         break;
+@@ -63,7 +74,7 @@ function main(args = process.argv.slice(2)) {
+     }
+   } catch (error) {
+     if (error && typeof error.exitCode === 'number') {
+-      console.error(error.message);
++      if (!error.silent) console.error(error.message);
+       process.exit(error.exitCode);
+     }
+     console.error(error && error.message ? error.message : String(error));
+@@ -80,6 +91,9 @@ Usage:
+   receipts evidence add [--kind <kind>] [--label <label>] [--file <path>] [--link <url>] [--note <text>] [--cmd <command>] [--exit-code <code>] [--output <path>]
+   receipts run -- <command> [args...]
+   receipts done [--risk <note>] [--not-run <check>] [--next <action>] [--self-verified]
++  receipts verify [<receipt-id>|latest] [--json]
++  receipts list [--json] [--limit <n>] [--status <status>]
++  receipts show [<receipt-id>|latest] [--json|--markdown]
+   receipts github comment --pr <number> [--repo <owner/repo>] [--receipt <id>] [--dry-run]
+   receipts openclaw agent-end --event <event.json> [--workspace-dir <path>] [--dry-run]
+ 
+@@ -89,6 +103,9 @@ Examples:
+   receipts run -- npm test
+   receipts evidence add --file screenshots/login.png --kind screenshot --label "Login smoke test"
+   receipts done --risk "OAuth provider edge cases not manually tested." --not-run "Browser OAuth smoke test" --next "Review diff and run browser smoke test."
++  receipts list
++  receipts show latest
++  receipts verify latest
+   receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
+   receipts openclaw agent-end --event /tmp/openclaw-agent-end.json --workspace-dir .
+ `);
+@@ -289,7 +306,6 @@ function done(args) {
+   const now = new Date().toISOString();
+   receipt.updated_at = now;
+   receipt.completed_at = now;
+-  receipt.status = parsed.options['self-verified'] ? 'self-verified' : readDefaultDoneStatus();
+ 
+   for (const risk of asArray(parsed.options.risk)) receipt.risk.notes.push(risk);
+   for (const assumption of asArray(parsed.options.assumption)) receipt.risk.assumptions.push(assumption);
+@@ -297,7 +313,6 @@ function done(args) {
+   if (receipt.risk.notes.length === 0 && receipt.risk.assumptions.length === 0) {
+     receipt.risk.notes.push('No known risks were identified. Review is still recommended.');
+   }
+-  receipt.risk.level = inferRiskLevel(receipt);
+ 
+   for (const notRun of asArray(parsed.options['not-run'])) {
+     receipt.verification.checks.push({
+@@ -309,23 +324,164 @@ function done(args) {
+   }
+   if (parsed.options.next) receipt.recommended_next_action = parsed.options.next;
+ 
++  receipt.risk.level = inferRiskLevel(receipt);
+   collectWorkspaceEvidence(receipt);
+   updateVerificationSummary(receipt);
++  applyReceiptPolicy(receipt, {
++    selfVerified: parsed.options['self-verified'],
++    requestedStatus: parsed.options['self-verified'] ? 'self-verified' : readDefaultDoneStatus(),
++  });
+ 
+-  attachIntegrity(receipt);
++  attachIntegrity(receipt, process.cwd());
+   assertValidReceipt(receipt);
+ 
+   const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
+   const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receipt.id}.md`);
+   writeJson(receiptPath, receipt);
+   writeFileSync(markdownPath, renderMarkdown(receipt));
++  const completedDraftPath = draftPath(receipt.id);
++  if (existsSync(completedDraftPath)) unlinkSync(completedDraftPath);
+   writeJson(pathInReceipts(ACTIVE_FILE), { id: null, completed_id: receipt.id, updated_at: now });
+ 
+   console.log(`Receipt completed: ${receipt.id}`);
++  console.log(`Status: ${receipt.status}${receipt.policy ? ` (${receipt.policy.reasons.join('; ')})` : ''}`);
+   console.log(`JSON: ${normalizeUserPath(receiptPath)}`);
+   console.log(`Markdown: ${normalizeUserPath(markdownPath)}`);
+ }
+ 
++function verify(args) {
++  ensureInitialized();
++  const parsed = parseOptions(args, { boolean: ['json'] });
++  const receiptId = resolveReceiptId(parsed.positionals[0]);
++  if (!receiptId) fail('No matching receipt found. Pass a receipt id or generate one first.', 65);
++  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receiptId}.json`);
++  if (!existsSync(receiptPath)) fail(`Receipt not found: ${receiptId}`, 66);
++
++  let receipt;
++  try {
++    receipt = readJson(receiptPath);
++  } catch (error) {
++    fail(`Could not read receipt ${receiptId}: ${error.message}`, 66);
++  }
++
++  const result = verifyReceiptIntegrity(receipt, process.cwd());
++
++  if (parsed.options.json) {
++    console.log(JSON.stringify(result, null, 2));
++  } else {
++    const ok = result.ok;
++    console.log(`Receipt: ${result.receipt_id || receiptId}`);
++    console.log(`Status:  ${ok ? 'CLEAN' : result.status.toUpperCase()}`);
++    if (result.payload) {
++      console.log(`Payload: ${result.payload.ok ? 'ok' : 'MISMATCH'}`);
++    }
++    if (result.artifacts.length) {
++      console.log('Artifacts:');
++      for (const artifact of result.artifacts) {
++        const state = artifact.ok ? 'ok' : (artifact.error || 'mismatch').toUpperCase();
++        console.log(`  - ${artifact.path}: ${state}`);
++      }
++    } else {
++      console.log('Artifacts: none recorded');
++    }
++    if (!ok && result.errors.length) {
++      console.log('Problems:');
++      for (const err of result.errors) console.log(`  - ${err}`);
++    }
++  }
++
++  if (!result.ok) {
++    const error = new Error('Receipt verification failed.');
++    error.exitCode = 1;
++    error.silent = true;
++    throw error;
++  }
++}
++
++function listReceipts(args) {
++  ensureInitialized();
++  const parsed = parseOptions(args, { string: ['limit', 'status'], boolean: ['json'] });
++  const limit = parsed.options.limit ? Number(parsed.options.limit) : undefined;
++  if (parsed.options.limit && (!Number.isFinite(limit) || limit <= 0)) fail('--limit must be a positive number.', 64);
++  const statusFilter = parsed.options.status || null;
++
++  let summaries = completedReceiptSummaries();
++  if (statusFilter) summaries = summaries.filter((entry) => entry.status === statusFilter);
++  if (limit) summaries = summaries.slice(0, limit);
++
++  if (parsed.options.json) {
++    console.log(JSON.stringify(summaries, null, 2));
++    return;
++  }
++  if (summaries.length === 0) {
++    console.log('No completed receipts found.');
++    return;
++  }
++  for (const entry of summaries) {
++    const date = (entry.completed_at || entry.updated_at || entry.created_at || '').slice(0, 10) || '----------';
++    console.log(`${entry.id}  ${entry.status.padEnd(13)}  ${date}  ${entry.summary}`);
++  }
++}
++
++function showReceipt(args) {
++  ensureInitialized();
++  const parsed = parseOptions(args, { boolean: ['json', 'markdown'] });
++  const receiptId = resolveReceiptId(parsed.positionals[0]);
++  if (!receiptId) fail('No matching receipt found. Pass a receipt id or generate one first.', 65);
++  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receiptId}.json`);
++  if (!existsSync(receiptPath)) fail(`Receipt not found: ${receiptId}`, 66);
++
++  if (parsed.options.json) {
++    console.log(readFileSync(receiptPath, 'utf8').trimEnd());
++    return;
++  }
++
++  const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receiptId}.md`);
++  if (!parsed.options.markdown && existsSync(markdownPath)) {
++    console.log(readFileSync(markdownPath, 'utf8').trimEnd());
++    return;
++  }
++  const receipt = readJson(receiptPath);
++  console.log(renderMarkdown(receipt));
++}
++
++function completedReceiptSummaries() {
++  const receiptsDir = pathInReceipts(RECEIPTS_SUBDIR);
++  if (!existsSync(receiptsDir)) return [];
++  const { readdirSync, statSync } = require('node:fs');
++  return readdirSync(receiptsDir)
++    .filter((file) => file.endsWith('.json') && !file.endsWith('.draft.json'))
++    .map((file) => {
++      const fullPath = join(receiptsDir, file);
++      let receipt = {};
++      try {
++        receipt = readJson(fullPath);
++      } catch (_) {
++        receipt = {};
++      }
++      return {
++        id: file.replace(/\.json$/, ''),
++        status: receipt.status || 'unknown',
++        summary: (receipt.claim && receipt.claim.summary) || '(no claim summary)',
++        created_at: receipt.created_at || null,
++        updated_at: receipt.updated_at || null,
++        completed_at: receipt.completed_at || null,
++        mtime: statSync(fullPath).mtimeMs,
++      };
++    })
++    .sort((a, b) => {
++      const at = Date.parse(a.completed_at || a.updated_at || '') || a.mtime;
++      const bt = Date.parse(b.completed_at || b.updated_at || '') || b.mtime;
++      return bt - at;
++    });
++}
++
++function resolveReceiptId(arg) {
++  if (arg && arg !== 'latest') return arg.replace(/\.json$/, '');
++  const summaries = completedReceiptSummaries();
++  return summaries[0] ? summaries[0].id : null;
++}
++
+ function ensureInitialized() {
+   if (!existsSync(RECEIPTS_DIR)) init();
+   ensureDir(pathInReceipts(RECEIPTS_SUBDIR));
+@@ -429,7 +585,7 @@ function collectWorkspaceEvidence(receipt) {
+     git_diff_artifact: normalizeUserPath(diffPath),
+   };
+ 
+-  receipt.changes = parseGitStatus(status.stdout || '');
++  receipt.changes = parseGitStatus(status.stdout || '', receipt);
+ 
+   const hasGitDiffEvidence = receipt.evidence.some((entry) => entry.kind === 'git-diff');
+   if (!hasGitDiffEvidence) {
+@@ -444,7 +600,8 @@ function collectWorkspaceEvidence(receipt) {
+   }
+ }
+ 
+-function parseGitStatus(statusText) {
++function parseGitStatus(statusText, receipt = null) {
++  const currentDraftPath = receipt ? normalizeUserPath(draftPath(receipt.id)) : null;
+   return statusText
+     .split('\n')
+     .map((line) => line.trimEnd())
+@@ -452,12 +609,14 @@ function parseGitStatus(statusText) {
+     .map((line) => {
+       const status = line.slice(0, 2).trim() || line.slice(0, 2);
+       const path = line.slice(3).trim();
+-      return {
+-        path,
+-        kind: gitStatusKind(status),
+-        summary: `${status || 'changed'} ${path}`,
+-      };
+-    });
++      return { status, path };
++    })
++    .filter(({ path }) => path !== currentDraftPath)
++    .map(({ status, path }) => ({
++      path,
++      kind: gitStatusKind(status),
++      summary: `${status || 'changed'} ${path}`,
++    }));
+ }
+ 
+ function gitStatusKind(status) {
+@@ -499,7 +658,7 @@ function updateVerificationSummary(receipt) {
+ function inferRiskLevel(receipt) {
+   const checks = receipt.verification.checks || [];
+   if (checks.some((check) => check.status === 'failed')) return 'high';
+-  if (checks.some((check) => check.status === 'not-run') || receipt.risk.notes.length > 0) return 'medium';
++  if (checks.length === 0 || checks.some((check) => check.status === 'not-run' || check.status === 'pending') || receipt.risk.notes.length > 0) return 'medium';
+   return 'low';
+ }
+ 
+@@ -528,7 +687,8 @@ function openclaw(args) {
+   const receipt = createOpenClawAgentEndReceipt(payload, eventPath);
+   collectWorkspaceEvidence(receipt);
+   updateVerificationSummary(receipt);
+-  attachIntegrity(receipt);
++  applyReceiptPolicy(receipt, { requestedStatus: 'needs-review' });
++  attachIntegrity(receipt, process.cwd());
+   assertValidReceipt(receipt);
+ 
+   const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
+@@ -699,28 +859,6 @@ function inferGitHubRepo() {
+   return null;
+ }
+ 
+-function attachIntegrity(receipt) {
+-  const artifacts = [];
+-  for (const entry of receipt.evidence || []) {
+-    for (const key of ['path', 'output', 'stdout', 'stderr']) {
+-      if (!entry[key]) continue;
+-      const artifactPath = resolve(process.cwd(), entry[key]);
+-      if (!existsSync(artifactPath)) continue;
+-      artifacts.push({ path: normalizeUserPath(artifactPath), sha256: sha256File(artifactPath) });
+-    }
+-  }
+-  const payload = JSON.stringify({ ...receipt, integrity: undefined });
+-  receipt.integrity = {
+-    algorithm: 'sha256',
+-    receipt_payload_sha256: createHash('sha256').update(payload).digest('hex'),
+-    artifacts,
+-  };
+-}
+-
+-function sha256File(path) {
+-  return createHash('sha256').update(readFileSync(path)).digest('hex');
+-}
+-
+ function parseOptions(args, spec) {
+   const options = {};
+   const positionals = [];
+diff --git a/src/render-markdown.js b/src/render-markdown.js
+index 30ad2a1..d441d04 100644
+--- a/src/render-markdown.js
++++ b/src/render-markdown.js
+@@ -15,6 +15,7 @@ function renderMarkdown(receipt) {
+     receipt.risk.rollback ? `Rollback: ${receipt.risk.rollback}` : null,
+   ].filter(Boolean);
+   const integrity = renderIntegrity(receipt.integrity);
++  const policy = renderPolicy(receipt.policy);
+ 
+   return `# Receipt: ${receipt.claim.summary}
+ 
+@@ -42,6 +43,10 @@ ${evidence}
+ 
+ ${checks}
+ 
++## Policy
++
++${policy}
++
+ ## Risks
+ 
+ **Level:** ${receipt.risk.level}
+@@ -84,6 +89,19 @@ function renderCheckLine(check) {
+   return `- ${icon} **${check.status}** — ${check.label}${details.length ? ` (${details.join('; ')})` : ''}`;
+ }
+ 
++function renderPolicy(policy) {
++  if (!policy) return '- No policy verdict recorded.';
++  const lines = [];
++  if (policy.verdict) lines.push(`- Verdict: **${policy.verdict}**`);
++  if (policy.requested) lines.push(`- Requested: ${policy.requested}`);
++  if (policy.self_verified_allowed !== undefined) lines.push(`- Self-verified allowed: ${policy.self_verified_allowed ? 'yes' : 'no'}`);
++  if (policy.reasons && policy.reasons.length) {
++    lines.push('- Reasons:');
++    for (const reason of policy.reasons) lines.push(`  - ${reason}`);
++  }
++  return lines.length ? lines.join('\n') : '- No policy verdict recorded.';
++}
++
+ function renderIntegrity(integrity) {
+   if (!integrity) return '- Not recorded.';
+   const lines = [];
+@@ -95,4 +113,4 @@ function renderIntegrity(integrity) {
+   return lines.length ? lines.join('\n') : '- Not recorded.';
+ }
+ 
+-module.exports = { renderMarkdown, renderEvidenceLine, renderCheckLine, renderIntegrity };
++module.exports = { renderMarkdown, renderEvidenceLine, renderCheckLine, renderPolicy, renderIntegrity };
+diff --git a/src/schema.js b/src/schema.js
+index c3ae868..bd22c00 100644
+--- a/src/schema.js
++++ b/src/schema.js
+@@ -45,6 +45,13 @@ function validateReceipt(receipt) {
+     requireArray(receipt.risk.notes, 'risk.notes', errors);
+     requireArray(receipt.risk.assumptions, 'risk.assumptions', errors);
+   }
++  if (receipt.policy !== undefined) {
++    requireObject(receipt.policy, 'policy', errors);
++    if (receipt.policy) {
++      requireString(receipt.policy.verdict, 'policy.verdict', errors);
++      requireArray(receipt.policy.reasons, 'policy.reasons', errors);
++    }
++  }
+   requireString(receipt.recommended_next_action, 'recommended_next_action', errors);
+   return errors;
+ }
+diff --git a/test/smoke.js b/test/smoke.js
+index b3d474b..ad782b9 100644
+--- a/test/smoke.js
++++ b/test/smoke.js
+@@ -48,20 +48,35 @@ if (!existsSync(jsonPath) || !existsSync(mdPath)) {
+   console.error('Expected receipt output files were not created.');
+   process.exit(1);
+ }
++if (existsSync(jsonPath.replace(/\.json$/, '.draft.json'))) {
++  console.error('Completed receipt draft was not removed.');
++  process.exit(1);
++}
+ 
+ const receipt = JSON.parse(readFileSync(jsonPath, 'utf8'));
+ const markdown = readFileSync(mdPath, 'utf8');
+ 
+ assert(receipt.schema_version === '0.1.0', 'schema version');
+ assert(receipt.status === 'needs-review', 'done status');
++assert(receipt.policy && receipt.policy.verdict === 'needs-review', 'policy verdict');
+ assert(receipt.claim.summary === 'Smoke test receipt', 'claim summary');
+ assert(receipt.evidence.some((entry) => entry.kind === 'command' && entry.exit_code === 0), 'command evidence');
+ assert(receipt.verification.checks.some((check) => check.status === 'not-run'), 'not-run verification');
+ assert(markdown.includes('## Evidence'), 'markdown evidence section');
++assert(markdown.includes('## Policy'), 'markdown policy section');
+ assert(markdown.includes('## Risks'), 'markdown risks section');
+ assert(markdown.includes('## Integrity'), 'markdown integrity section');
+ assert(receipt.integrity && receipt.integrity.receipt_payload_sha256, 'receipt integrity hash');
+ 
++const list = run(['list']);
++assert(list.stdout.includes('Smoke test receipt'), 'list includes receipt');
++const show = run(['show', 'latest']);
++assert(show.stdout.includes('# Receipt: Smoke test receipt'), 'show latest includes markdown');
++const verify = run(['verify', 'latest']);
++assert(verify.stdout.includes('Status:  CLEAN'), 'verify latest clean');
++const verifyJson = run(['verify', receipt.id, '--json']);
++assert(JSON.parse(verifyJson.stdout).ok === true, 'verify json clean');
++
+ console.log('CLI smoke test passed');
+ 
+ function assert(condition, label) {
+diff --git a/test/unit.js b/test/unit.js
+index f14a25e..ee2a9fe 100644
+--- a/test/unit.js
++++ b/test/unit.js
+@@ -1,5 +1,5 @@
+ const assert = require('node:assert/strict');
+-const { mkdtempSync, readFileSync, writeFileSync } = require('node:fs');
++const { mkdtempSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
+ const { tmpdir } = require('node:os');
+ const { join } = require('node:path');
+ const { spawnSync } = require('node:child_process');
+@@ -51,6 +51,52 @@ spawnOk(['done', '--next', 'Post to PR.']);
+ const dryRun = spawnOk(['github', 'comment', '--pr', '123', '--repo', 'heybeaux/receipts', '--dry-run']);
+ assert(dryRun.stdout.includes('Would comment on heybeaux/receipts#123'));
+ assert(dryRun.stdout.includes('# Receipt: GitHub dry run receipt'));
++const listRun = spawnOk(['list']);
++assert(listRun.stdout.includes('GitHub dry run receipt'));
++const showRun = spawnOk(['show', 'latest']);
++assert(showRun.stdout.includes('# Receipt: GitHub dry run receipt'));
++const verifyRun = spawnOk(['verify', 'latest']);
++assert(verifyRun.stdout.includes('Status:  CLEAN'));
++
++const verifyWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-verify-'));
++spawnOkIn(verifyWorkdir, ['init']);
++spawnOkIn(verifyWorkdir, ['claim', 'Verification receipt']);
++spawnOkIn(verifyWorkdir, ['run', '--', process.execPath, '-e', 'console.log("verify-ok")']);
++const verifyDone = spawnOkIn(verifyWorkdir, ['done', '--self-verified']);
++const verifyJsonPath = join(verifyWorkdir, verifyDone.stdout.match(/JSON: (.+)/)[1].trim());
++let verifyReceipt = JSON.parse(readFileSync(verifyJsonPath, 'utf8'));
++assert.equal(verifyReceipt.status, 'self-verified');
++assert.equal(verifyReceipt.policy.verdict, 'self-verified');
++const verifyJson = spawnOkIn(verifyWorkdir, ['verify', verifyReceipt.id, '--json']);
++assert.equal(JSON.parse(verifyJson.stdout).ok, true);
++verifyReceipt.claim.summary = 'Tampered summary';
++writeFileSync(verifyJsonPath, `${JSON.stringify(verifyReceipt, null, 2)}\n`);
++const tamperedPayload = spawnIn(verifyWorkdir, ['verify', verifyReceipt.id], 1);
++assert(tamperedPayload.stdout.includes('payload hash mismatch'));
++
++const artifactWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-artifact-'));
++spawnOkIn(artifactWorkdir, ['init']);
++spawnOkIn(artifactWorkdir, ['claim', 'Artifact verification receipt']);
++spawnOkIn(artifactWorkdir, ['run', '--', process.execPath, '-e', 'console.log("artifact-ok")']);
++const artifactDone = spawnOkIn(artifactWorkdir, ['done']);
++const artifactJsonPath = join(artifactWorkdir, artifactDone.stdout.match(/JSON: (.+)/)[1].trim());
++const artifactReceipt = JSON.parse(readFileSync(artifactJsonPath, 'utf8'));
++const firstArtifact = artifactReceipt.integrity.artifacts[0];
++writeFileSync(join(artifactWorkdir, firstArtifact.path), 'tampered artifact\n');
++const tamperedArtifact = spawnIn(artifactWorkdir, ['verify', artifactReceipt.id], 1);
++assert(tamperedArtifact.stdout.includes('artifact hash mismatch'));
++unlinkSync(join(artifactWorkdir, firstArtifact.path));
++const missingArtifact = spawnIn(artifactWorkdir, ['verify', artifactReceipt.id], 1);
++assert(missingArtifact.stdout.includes('artifact missing'));
++
++const policyWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-policy-'));
++spawnOkIn(policyWorkdir, ['init']);
++spawnOkIn(policyWorkdir, ['claim', 'Weak self verification']);
++const weakDone = spawnOkIn(policyWorkdir, ['done', '--self-verified']);
++const weakReceipt = JSON.parse(readFileSync(join(policyWorkdir, weakDone.stdout.match(/JSON: (.+)/)[1].trim()), 'utf8'));
++assert.equal(weakReceipt.status, 'needs-review');
++assert.equal(weakReceipt.policy.self_verified_allowed, false);
++assert(weakReceipt.policy.reasons.some((reason) => reason.includes('no verification checks')));
+ 
+ const openclawWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-openclaw-'));
+ const eventPath = join(openclawWorkdir, 'agent-end.json');
+@@ -156,12 +202,20 @@ assert.equal(modelResult.receipt.integrations.openclaw.model_source, 'model_call
+ console.log('Unit tests passed');
+ 
+ function spawnOk(args) {
++  return spawnOkIn(workdir, args);
++}
++
++function spawnOkIn(cwd, args) {
++  return spawnIn(cwd, args, 0);
++}
++
++function spawnIn(cwd, args, expectedStatus) {
+   const result = spawnSync(process.execPath, [cli, ...args], {
+-    cwd: workdir,
++    cwd,
+     encoding: 'utf8',
+     env: { ...process.env, RECEIPTS_ACTOR_ID: 'unit-test', RECEIPTS_MODEL: 'node-test' },
+   });
+-  if (result.status !== 0) {
++  if (result.status !== expectedStatus) {
+     console.error(`Command failed: receipts ${args.join(' ')}`);
+     console.error(result.stdout);
+     console.error(result.stderr);

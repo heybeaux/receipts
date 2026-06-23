@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { mkdtempSync, readFileSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
@@ -51,6 +51,52 @@ spawnOk(['done', '--next', 'Post to PR.']);
 const dryRun = spawnOk(['github', 'comment', '--pr', '123', '--repo', 'heybeaux/receipts', '--dry-run']);
 assert(dryRun.stdout.includes('Would comment on heybeaux/receipts#123'));
 assert(dryRun.stdout.includes('# Receipt: GitHub dry run receipt'));
+const listRun = spawnOk(['list']);
+assert(listRun.stdout.includes('GitHub dry run receipt'));
+const showRun = spawnOk(['show', 'latest']);
+assert(showRun.stdout.includes('# Receipt: GitHub dry run receipt'));
+const verifyRun = spawnOk(['verify', 'latest']);
+assert(verifyRun.stdout.includes('Status:  CLEAN'));
+
+const verifyWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-verify-'));
+spawnOkIn(verifyWorkdir, ['init']);
+spawnOkIn(verifyWorkdir, ['claim', 'Verification receipt']);
+spawnOkIn(verifyWorkdir, ['run', '--', process.execPath, '-e', 'console.log("verify-ok")']);
+const verifyDone = spawnOkIn(verifyWorkdir, ['done', '--self-verified']);
+const verifyJsonPath = join(verifyWorkdir, verifyDone.stdout.match(/JSON: (.+)/)[1].trim());
+let verifyReceipt = JSON.parse(readFileSync(verifyJsonPath, 'utf8'));
+assert.equal(verifyReceipt.status, 'self-verified');
+assert.equal(verifyReceipt.policy.verdict, 'self-verified');
+const verifyJson = spawnOkIn(verifyWorkdir, ['verify', verifyReceipt.id, '--json']);
+assert.equal(JSON.parse(verifyJson.stdout).ok, true);
+verifyReceipt.claim.summary = 'Tampered summary';
+writeFileSync(verifyJsonPath, `${JSON.stringify(verifyReceipt, null, 2)}\n`);
+const tamperedPayload = spawnIn(verifyWorkdir, ['verify', verifyReceipt.id], 1);
+assert(tamperedPayload.stdout.includes('payload hash mismatch'));
+
+const artifactWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-artifact-'));
+spawnOkIn(artifactWorkdir, ['init']);
+spawnOkIn(artifactWorkdir, ['claim', 'Artifact verification receipt']);
+spawnOkIn(artifactWorkdir, ['run', '--', process.execPath, '-e', 'console.log("artifact-ok")']);
+const artifactDone = spawnOkIn(artifactWorkdir, ['done']);
+const artifactJsonPath = join(artifactWorkdir, artifactDone.stdout.match(/JSON: (.+)/)[1].trim());
+const artifactReceipt = JSON.parse(readFileSync(artifactJsonPath, 'utf8'));
+const firstArtifact = artifactReceipt.integrity.artifacts[0];
+writeFileSync(join(artifactWorkdir, firstArtifact.path), 'tampered artifact\n');
+const tamperedArtifact = spawnIn(artifactWorkdir, ['verify', artifactReceipt.id], 1);
+assert(tamperedArtifact.stdout.includes('artifact hash mismatch'));
+unlinkSync(join(artifactWorkdir, firstArtifact.path));
+const missingArtifact = spawnIn(artifactWorkdir, ['verify', artifactReceipt.id], 1);
+assert(missingArtifact.stdout.includes('artifact missing'));
+
+const policyWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-policy-'));
+spawnOkIn(policyWorkdir, ['init']);
+spawnOkIn(policyWorkdir, ['claim', 'Weak self verification']);
+const weakDone = spawnOkIn(policyWorkdir, ['done', '--self-verified']);
+const weakReceipt = JSON.parse(readFileSync(join(policyWorkdir, weakDone.stdout.match(/JSON: (.+)/)[1].trim()), 'utf8'));
+assert.equal(weakReceipt.status, 'needs-review');
+assert.equal(weakReceipt.policy.self_verified_allowed, false);
+assert(weakReceipt.policy.reasons.some((reason) => reason.includes('no verification checks')));
 
 const openclawWorkdir = mkdtempSync(join(tmpdir(), 'receipts-unit-openclaw-'));
 const eventPath = join(openclawWorkdir, 'agent-end.json');
@@ -156,12 +202,20 @@ assert.equal(modelResult.receipt.integrations.openclaw.model_source, 'model_call
 console.log('Unit tests passed');
 
 function spawnOk(args) {
+  return spawnOkIn(workdir, args);
+}
+
+function spawnOkIn(cwd, args) {
+  return spawnIn(cwd, args, 0);
+}
+
+function spawnIn(cwd, args, expectedStatus) {
   const result = spawnSync(process.execPath, [cli, ...args], {
-    cwd: workdir,
+    cwd,
     encoding: 'utf8',
     env: { ...process.env, RECEIPTS_ACTOR_ID: 'unit-test', RECEIPTS_MODEL: 'node-test' },
   });
-  if (result.status !== 0) {
+  if (result.status !== expectedStatus) {
     console.error(`Command failed: receipts ${args.join(' ')}`);
     console.error(result.stdout);
     console.error(result.stderr);

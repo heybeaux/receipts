@@ -1,0 +1,153 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_152306_ad0a0c",
+  "created_at": "2026-06-23T15:23:06.171Z",
+  "updated_at": "2026-06-23T15:23:06.216Z",
+  "status": "self-verified",
+  "claim": {
+    "summary": "Implement Receipts v1 Track 1+2",
+    "details": "Added verify/list/show commands, shared integrity helpers, conservative policy verdicts, schema support, tests, docs, draft cleanup on completion, and filtered active draft noise from git status."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "beauxwalton",
+    "model": null
+  },
+  "task": {
+    "source": "manual",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "9d83da938b4909955dd1170c8e7f1ed6e36c0e65",
+    "commit_after": "9d83da938b4909955dd1170c8e7f1ed6e36c0e65",
+    "git_status": "M .receipts/active.json\n M README.md\n M openclaw/plugin.js\n M openspec/changes/define-receipts-v1/tasks.md\n M schemas/receipt.schema.json\n M src/cli.js\n M src/render-markdown.js\n M src/schema.js\n M test/smoke.js\n M test/unit.js\n?? .receipts/receipts/rcpt_20260623_152306_ad0a0c.draft.json\n?? src/integrity.js\n?? src/policy.js",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_152306_ad0a0c/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "openclaw/plugin.js",
+      "kind": "modified",
+      "summary": "M openclaw/plugin.js"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v1/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v1/tasks.md"
+    },
+    {
+      "path": "schemas/receipt.schema.json",
+      "kind": "modified",
+      "summary": "M schemas/receipt.schema.json"
+    },
+    {
+      "path": "src/cli.js",
+      "kind": "modified",
+      "summary": "M src/cli.js"
+    },
+    {
+      "path": "src/render-markdown.js",
+      "kind": "modified",
+      "summary": "M src/render-markdown.js"
+    },
+    {
+      "path": "src/schema.js",
+      "kind": "modified",
+      "summary": "M src/schema.js"
+    },
+    {
+      "path": "test/smoke.js",
+      "kind": "modified",
+      "summary": "M test/smoke.js"
+    },
+    {
+      "path": "test/unit.js",
+      "kind": "modified",
+      "summary": "M test/unit.js"
+    },
+    {
+      "path": "src/integrity.js",
+      "kind": "added",
+      "summary": "?? src/integrity.js"
+    },
+    {
+      "path": "src/policy.js",
+      "kind": "added",
+      "summary": "?? src/policy.js"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "Full test suite",
+      "created_at": "2026-06-23T15:23:06.193Z",
+      "command": "npm test",
+      "exit_code": 0,
+      "note": "OpenSpec validation, unit tests, and CLI smoke test passed."
+    },
+    {
+      "id": "ev_002",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_152306_ad0a0c/git.diff",
+      "created_at": "2026-06-23T15:23:06.261Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "Full test suite",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "Schema version remains 0.1.0 until the later v1 release/versioning task."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Review diff, then continue remaining docs/adoption and release tasks.",
+  "completed_at": "2026-06-23T15:23:06.216Z",
+  "policy": {
+    "verdict": "self-verified",
+    "requested": "self-verified",
+    "self_verified_allowed": true,
+    "enforced": true,
+    "reasons": [
+      "all verification checks passed"
+    ]
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "d16f975e37a5edeeb971ab1c1fbcf35eb7e55d4395096830f37eb3c28a1908fd",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_152306_ad0a0c/git.diff",
+        "sha256": "ccd2b2825483197802ac12163548ebf84674a5bcd69d71619839a332bd72d1fc"
+      }
+    ]
+  }
+}

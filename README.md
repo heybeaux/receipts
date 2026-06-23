@@ -109,6 +109,9 @@ receipts done \
   --risk "OAuth provider edge cases not manually tested." \
   --not-run "Browser OAuth smoke test" \
   --next "Review diff and run browser smoke test."
+receipts list                                   # browse completed receipts
+receipts show latest                            # inspect the newest receipt
+receipts verify latest                          # recompute payload + artifact hashes
 ```
 
 Generated artifacts live under `.receipts/`:
@@ -132,9 +135,50 @@ Generated artifacts live under `.receipts/`:
 | `receipts claim "<summary>"` | Start a draft receipt and mark it active. Flags: `--details`, `--actor-id`, `--actor-type`, `--model`, `--task-source`, `--task-id`, `--task-url`. |
 | `receipts evidence add` | Attach evidence to the active receipt: `--file`, `--link`, `--note`, `--cmd`, `--exit-code`, `--output`, `--kind`, `--label`. |
 | `receipts run -- <cmd>` | Run a command, capture stdout/stderr/exit code as evidence, and return the command's exit code. |
-| `receipts done` | Collect git/workspace metadata, render JSON + Markdown, hash for integrity. Flags: `--risk`, `--assumption`, `--rollback`, `--not-run`, `--next`, `--self-verified`. |
+| `receipts done` | Collect git/workspace metadata, apply policy verdicts, render JSON + Markdown, hash for integrity. Flags: `--risk`, `--assumption`, `--rollback`, `--not-run`, `--next`, `--self-verified`. |
+| `receipts list` | List completed receipts newest-first. Flags: `--json`, `--limit <n>`, `--status <status>`. |
+| `receipts show [id|latest]` | Show one receipt. Defaults to Markdown; flags: `--json`, `--markdown`. |
+| `receipts verify [id|latest]` | Recompute receipt payload and artifact hashes. Flag: `--json`; exits 0 clean, 1 failed verification. |
 | `receipts github comment --pr <n>` | Post the latest (or `--receipt <id>`) receipt Markdown to a GitHub PR. `--repo`, `--dry-run`. |
 | `receipts openclaw agent-end --event <file>` | Convert an exported OpenClaw `agent_end` payload into a receipt (used by tests / custom integrations). |
+
+### Browse, inspect, and verify receipts
+
+```bash
+receipts list
+receipts list --status needs-review --limit 5
+receipts list --json
+
+receipts show latest
+receipts show rcpt_20260623_131512_c0237a --json
+
+receipts verify latest
+receipts verify rcpt_20260623_131512_c0237a --json
+```
+
+`receipts verify` checks two things:
+
+1. The receipt payload hash still matches the JSON content with the `integrity` block removed.
+2. Every artifact listed in `integrity.artifacts` still exists and matches its recorded SHA-256.
+
+Exit codes are intentionally CI-friendly:
+
+- `0` — clean
+- `1` — payload mismatch, artifact mismatch, missing artifact, missing integrity, or malformed receipt
+- `64` — usage error
+- `65` — no matching receipt
+- `66` — receipt/artifact read failure
+
+### Policy verdicts
+
+Receipts is conservative about `self-verified`. Passing `--self-verified` is a request, not a blank cheque. The CLI records a `policy` block and downgrades the final status to `needs-review` when:
+
+- no verification checks exist,
+- any check failed,
+- any check is pending, or
+- any check is marked `not-run`.
+
+A receipt can become `self-verified` only when at least one verification check passed and none failed/pending/not-run. `human-approved` is never assigned automatically.
 
 ### Post a receipt to a GitHub PR
 
@@ -202,14 +246,14 @@ The portable contract lives at [`schemas/receipt.schema.json`](./schemas/receipt
 - `task`, `workspace`, `changes`
 - `evidence[]`, `verification` (`summary`, `checks[]`)
 - `risk` (`level`, `notes`, `assumptions`, `rollback`)
-- `integrations`, `integrity`, `recommended_next_action`
+- `integrations`, `policy`, `integrity`, `recommended_next_action`
 
 **Status values:** `draft`, `self-verified`, `needs-review`, `human-approved`, `rejected`, `superseded`.
 **Check states:** `passed`, `failed`, `pending`, `not-run`.
 
 ### Integrity
 
-On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of every captured artifact under `integrity`, so tampering with a stored receipt or its evidence is detectable.
+On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of every captured artifact under `integrity`, so tampering with a stored receipt or its evidence is detectable. Use `receipts verify [id|latest]` to recompute those hashes later.
 
 ---
 
@@ -217,9 +261,11 @@ On `done` and on OpenClaw hook completion, each receipt records a SHA-256 hash o
 
 ```text
 bin/receipts.js            thin executable
-src/cli.js                 command dispatch + workflow (init/claim/evidence/run/done/github/openclaw)
+src/cli.js                 command dispatch + workflow (init/claim/evidence/run/done/list/show/verify/github/openclaw)
 src/render-markdown.js     Markdown rendering
 src/schema.js              receipt validation
+src/integrity.js           shared payload/artifact hashing + verification
+src/policy.js              conservative status/policy verdict logic
 src/openclaw-receipt.js    shared claim extraction + model resolution (CLI + plugin)
 openclaw/plugin.js         OpenClaw agent_end plugin adapter (in-process, no shell-out)
 schemas/receipt.schema.json published JSON Schema

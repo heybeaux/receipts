@@ -3,24 +3,223 @@
   "$id": "https://github.com/heybeaux/receipts/schemas/receipt.schema.json",
   "title": "Receipt",
   "type": "object",
-  "required": ["schema_version", "id", "created_at", "updated_at", "status", "claim", "actor", "workspace", "changes", "evidence", "verification", "risk", "recommended_next_action"],
+  "required": [
+    "schema_version",
+    "id",
+    "created_at",
+    "updated_at",
+    "status",
+    "claim",
+    "actor",
+    "workspace",
+    "changes",
+    "evidence",
+    "verification",
+    "risk",
+    "recommended_next_action"
+  ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
-    "id": { "type": "string", "pattern": "^rcpt_" },
-    "created_at": { "type": "string" },
-    "updated_at": { "type": "string" },
-    "completed_at": { "type": "string" },
-    "status": { "type": "string", "enum": ["draft", "self-verified", "needs-review", "human-approved", "rejected", "superseded"] },
-    "claim": { "type": "object", "required": ["summary"], "properties": { "summary": { "type": "string", "minLength": 1 }, "details": { "type": ["string", "null"] } } },
-    "actor": { "type": "object", "required": ["type", "id"], "properties": { "type": { "type": "string", "minLength": 1 }, "id": { "type": "string", "minLength": 1 }, "model": { "type": ["string", "null"] } } },
-    "task": { "type": "object" },
-    "workspace": { "type": "object" },
-    "changes": { "type": "array", "items": { "type": "object" } },
-    "evidence": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "label"] } },
-    "verification": { "type": "object", "required": ["summary", "checks"], "properties": { "summary": { "type": "string" }, "checks": { "type": "array", "items": { "type": "object", "required": ["label", "status"], "properties": { "label": { "type": "string" }, "status": { "type": "string", "enum": ["passed", "failed", "pending", "not-run"] } } } } } },
-    "risk": { "type": "object", "required": ["level", "notes", "assumptions"], "properties": { "level": { "type": "string" }, "notes": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "rollback": { "type": ["string", "null"] } } },
-    "integrations": { "type": "object" },
-    "integrity": { "type": "object" },
-    "recommended_next_action": { "type": "string" }
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^rcpt_"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "self-verified",
+        "needs-review",
+        "human-approved",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "task": {
+      "type": "object"
+    },
+    "workspace": {
+      "type": "object"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "label"
+        ]
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "summary",
+        "checks"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label",
+              "status"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "pending",
+                  "not-run"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "required": [
+        "level",
+        "notes",
+        "assumptions"
+      ],
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rollback": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "integrations": {
+      "type": "object"
+    },
+    "integrity": {
+      "type": "object"
+    },
+    "recommended_next_action": {
+      "type": "string"
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "reasons",
+        "enforced"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "self-verified",
+            "needs-review",
+            "human-approved",
+            "rejected",
+            "superseded"
+          ]
+        },
+        "requested": {
+          "type": "string"
+        },
+        "self_verified_allowed": {
+          "type": "boolean"
+        },
+        "enforced": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
   }
 }

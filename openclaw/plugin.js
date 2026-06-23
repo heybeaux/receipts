@@ -1,9 +1,11 @@
 'use strict';
 
-const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { existsSync, mkdirSync, writeFileSync } = require('node:fs');
 const { join, relative, resolve } = require('node:path');
-const { createHash, randomBytes } = require('node:crypto');
+const { randomBytes } = require('node:crypto');
 
+const { attachIntegrity } = require('../src/integrity');
+const { applyReceiptPolicy } = require('../src/policy');
 const { renderMarkdown } = require('../src/render-markdown');
 const { assertValidReceipt } = require('../src/schema');
 const {
@@ -148,6 +150,7 @@ function writeOpenClawReceipt({ event, ctx, workspaceDir, dryRun = false, resolv
     created_at: receipt.created_at,
   });
   updateVerificationSummary(receipt);
+  applyReceiptPolicy(receipt, { requestedStatus: 'needs-review' });
   attachIntegrity(receipt, root);
   assertValidReceipt(receipt);
 
@@ -275,24 +278,6 @@ function updateVerificationSummary(receipt) {
     counts.pending ? `${counts.pending} pending` : null,
     counts['not-run'] ? `${counts['not-run']} not run` : null,
   ].filter(Boolean).join('; ') || 'Verification recorded.';
-}
-
-function attachIntegrity(receipt, root) {
-  const artifacts = [];
-  for (const entry of receipt.evidence || []) {
-    for (const key of ['path', 'output', 'stdout', 'stderr']) {
-      if (!entry[key]) continue;
-      const artifactPath = resolve(root, entry[key]);
-      if (!existsSync(artifactPath)) continue;
-      artifacts.push({ path: normalizePath(root, artifactPath), sha256: createHash('sha256').update(readFileSync(artifactPath)).digest('hex') });
-    }
-  }
-  const payload = JSON.stringify({ ...receipt, integrity: undefined });
-  receipt.integrity = {
-    algorithm: 'sha256',
-    receipt_payload_sha256: createHash('sha256').update(payload).digest('hex'),
-    artifacts,
-  };
 }
 
 function nextEvidenceId(receipt) {

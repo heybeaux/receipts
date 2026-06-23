@@ -1,9 +1,11 @@
 
 const { spawnSync, execFileSync } = require('node:child_process');
-const { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } = require('node:fs');
 const { basename, dirname, isAbsolute, join, relative, resolve } = require('node:path');
-const { createHash, randomBytes } = require('node:crypto');
+const { randomBytes } = require('node:crypto');
 const { assertValidReceipt } = require('./schema');
+const { attachIntegrity, verifyReceiptIntegrity } = require('./integrity');
+const { applyReceiptPolicy } = require('./policy');
 const { renderMarkdown } = require('./render-markdown');
 const {
   findLastAssistantText,
@@ -42,6 +44,15 @@ function main(args = process.argv.slice(2)) {
       case 'done':
         done(args);
         break;
+      case 'verify':
+        verify(args);
+        break;
+      case 'list':
+        listReceipts(args);
+        break;
+      case 'show':
+        showReceipt(args);
+        break;
       case 'github':
         github(args);
         break;
@@ -63,7 +74,7 @@ function main(args = process.argv.slice(2)) {
     }
   } catch (error) {
     if (error && typeof error.exitCode === 'number') {
-      console.error(error.message);
+      if (!error.silent) console.error(error.message);
       process.exit(error.exitCode);
     }
     console.error(error && error.message ? error.message : String(error));
@@ -80,6 +91,9 @@ Usage:
   receipts evidence add [--kind <kind>] [--label <label>] [--file <path>] [--link <url>] [--note <text>] [--cmd <command>] [--exit-code <code>] [--output <path>]
   receipts run -- <command> [args...]
   receipts done [--risk <note>] [--not-run <check>] [--next <action>] [--self-verified]
+  receipts verify [<receipt-id>|latest] [--json]
+  receipts list [--json] [--limit <n>] [--status <status>]
+  receipts show [<receipt-id>|latest] [--json|--markdown]
   receipts github comment --pr <number> [--repo <owner/repo>] [--receipt <id>] [--dry-run]
   receipts openclaw agent-end --event <event.json> [--workspace-dir <path>] [--dry-run]
 
@@ -89,6 +103,9 @@ Examples:
   receipts run -- npm test
   receipts evidence add --file screenshots/login.png --kind screenshot --label "Login smoke test"
   receipts done --risk "OAuth provider edge cases not manually tested." --not-run "Browser OAuth smoke test" --next "Review diff and run browser smoke test."
+  receipts list
+  receipts show latest
+  receipts verify latest
   receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
   receipts openclaw agent-end --event /tmp/openclaw-agent-end.json --workspace-dir .
 `);
@@ -289,7 +306,6 @@ function done(args) {
   const now = new Date().toISOString();
   receipt.updated_at = now;
   receipt.completed_at = now;
-  receipt.status = parsed.options['self-verified'] ? 'self-verified' : readDefaultDoneStatus();
 
   for (const risk of asArray(parsed.options.risk)) receipt.risk.notes.push(risk);
   for (const assumption of asArray(parsed.options.assumption)) receipt.risk.assumptions.push(assumption);
@@ -297,7 +313,6 @@ function done(args) {
   if (receipt.risk.notes.length === 0 && receipt.risk.assumptions.length === 0) {
     receipt.risk.notes.push('No known risks were identified. Review is still recommended.');
   }
-  receipt.risk.level = inferRiskLevel(receipt);
 
   for (const notRun of asArray(parsed.options['not-run'])) {
     receipt.verification.checks.push({
@@ -309,21 +324,162 @@ function done(args) {
   }
   if (parsed.options.next) receipt.recommended_next_action = parsed.options.next;
 
+  receipt.risk.level = inferRiskLevel(receipt);
   collectWorkspaceEvidence(receipt);
   updateVerificationSummary(receipt);
+  applyReceiptPolicy(receipt, {
+    selfVerified: parsed.options['self-verified'],
+    requestedStatus: parsed.options['self-verified'] ? 'self-verified' : readDefaultDoneStatus(),
+  });
 
-  attachIntegrity(receipt);
+  attachIntegrity(receipt, process.cwd());
   assertValidReceipt(receipt);
 
   const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
   const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receipt.id}.md`);
   writeJson(receiptPath, receipt);
   writeFileSync(markdownPath, renderMarkdown(receipt));
+  const completedDraftPath = draftPath(receipt.id);
+  if (existsSync(completedDraftPath)) unlinkSync(completedDraftPath);
   writeJson(pathInReceipts(ACTIVE_FILE), { id: null, completed_id: receipt.id, updated_at: now });
 
   console.log(`Receipt completed: ${receipt.id}`);
+  console.log(`Status: ${receipt.status}${receipt.policy ? ` (${receipt.policy.reasons.join('; ')})` : ''}`);
   console.log(`JSON: ${normalizeUserPath(receiptPath)}`);
   console.log(`Markdown: ${normalizeUserPath(markdownPath)}`);
+}
+
+function verify(args) {
+  ensureInitialized();
+  const parsed = parseOptions(args, { boolean: ['json'] });
+  const receiptId = resolveReceiptId(parsed.positionals[0]);
+  if (!receiptId) fail('No matching receipt found. Pass a receipt id or generate one first.', 65);
+  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receiptId}.json`);
+  if (!existsSync(receiptPath)) fail(`Receipt not found: ${receiptId}`, 66);
+
+  let receipt;
+  try {
+    receipt = readJson(receiptPath);
+  } catch (error) {
+    fail(`Could not read receipt ${receiptId}: ${error.message}`, 66);
+  }
+
+  const result = verifyReceiptIntegrity(receipt, process.cwd());
+
+  if (parsed.options.json) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    const ok = result.ok;
+    console.log(`Receipt: ${result.receipt_id || receiptId}`);
+    console.log(`Status:  ${ok ? 'CLEAN' : result.status.toUpperCase()}`);
+    if (result.payload) {
+      console.log(`Payload: ${result.payload.ok ? 'ok' : 'MISMATCH'}`);
+    }
+    if (result.artifacts.length) {
+      console.log('Artifacts:');
+      for (const artifact of result.artifacts) {
+        const state = artifact.ok ? 'ok' : (artifact.error || 'mismatch').toUpperCase();
+        console.log(`  - ${artifact.path}: ${state}`);
+      }
+    } else {
+      console.log('Artifacts: none recorded');
+    }
+    if (!ok && result.errors.length) {
+      console.log('Problems:');
+      for (const err of result.errors) console.log(`  - ${err}`);
+    }
+  }
+
+  if (!result.ok) {
+    const error = new Error('Receipt verification failed.');
+    error.exitCode = 1;
+    error.silent = true;
+    throw error;
+  }
+}
+
+function listReceipts(args) {
+  ensureInitialized();
+  const parsed = parseOptions(args, { string: ['limit', 'status'], boolean: ['json'] });
+  const limit = parsed.options.limit ? Number(parsed.options.limit) : undefined;
+  if (parsed.options.limit && (!Number.isFinite(limit) || limit <= 0)) fail('--limit must be a positive number.', 64);
+  const statusFilter = parsed.options.status || null;
+
+  let summaries = completedReceiptSummaries();
+  if (statusFilter) summaries = summaries.filter((entry) => entry.status === statusFilter);
+  if (limit) summaries = summaries.slice(0, limit);
+
+  if (parsed.options.json) {
+    console.log(JSON.stringify(summaries, null, 2));
+    return;
+  }
+  if (summaries.length === 0) {
+    console.log('No completed receipts found.');
+    return;
+  }
+  for (const entry of summaries) {
+    const date = (entry.completed_at || entry.updated_at || entry.created_at || '').slice(0, 10) || '----------';
+    console.log(`${entry.id}  ${entry.status.padEnd(13)}  ${date}  ${entry.summary}`);
+  }
+}
+
+function showReceipt(args) {
+  ensureInitialized();
+  const parsed = parseOptions(args, { boolean: ['json', 'markdown'] });
+  const receiptId = resolveReceiptId(parsed.positionals[0]);
+  if (!receiptId) fail('No matching receipt found. Pass a receipt id or generate one first.', 65);
+  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receiptId}.json`);
+  if (!existsSync(receiptPath)) fail(`Receipt not found: ${receiptId}`, 66);
+
+  if (parsed.options.json) {
+    console.log(readFileSync(receiptPath, 'utf8').trimEnd());
+    return;
+  }
+
+  const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receiptId}.md`);
+  if (!parsed.options.markdown && existsSync(markdownPath)) {
+    console.log(readFileSync(markdownPath, 'utf8').trimEnd());
+    return;
+  }
+  const receipt = readJson(receiptPath);
+  console.log(renderMarkdown(receipt));
+}
+
+function completedReceiptSummaries() {
+  const receiptsDir = pathInReceipts(RECEIPTS_SUBDIR);
+  if (!existsSync(receiptsDir)) return [];
+  const { readdirSync, statSync } = require('node:fs');
+  return readdirSync(receiptsDir)
+    .filter((file) => file.endsWith('.json') && !file.endsWith('.draft.json'))
+    .map((file) => {
+      const fullPath = join(receiptsDir, file);
+      let receipt = {};
+      try {
+        receipt = readJson(fullPath);
+      } catch (_) {
+        receipt = {};
+      }
+      return {
+        id: file.replace(/\.json$/, ''),
+        status: receipt.status || 'unknown',
+        summary: (receipt.claim && receipt.claim.summary) || '(no claim summary)',
+        created_at: receipt.created_at || null,
+        updated_at: receipt.updated_at || null,
+        completed_at: receipt.completed_at || null,
+        mtime: statSync(fullPath).mtimeMs,
+      };
+    })
+    .sort((a, b) => {
+      const at = Date.parse(a.completed_at || a.updated_at || '') || a.mtime;
+      const bt = Date.parse(b.completed_at || b.updated_at || '') || b.mtime;
+      return bt - at;
+    });
+}
+
+function resolveReceiptId(arg) {
+  if (arg && arg !== 'latest') return arg.replace(/\.json$/, '');
+  const summaries = completedReceiptSummaries();
+  return summaries[0] ? summaries[0].id : null;
 }
 
 function ensureInitialized() {
@@ -429,7 +585,7 @@ function collectWorkspaceEvidence(receipt) {
     git_diff_artifact: normalizeUserPath(diffPath),
   };
 
-  receipt.changes = parseGitStatus(status.stdout || '');
+  receipt.changes = parseGitStatus(status.stdout || '', receipt);
 
   const hasGitDiffEvidence = receipt.evidence.some((entry) => entry.kind === 'git-diff');
   if (!hasGitDiffEvidence) {
@@ -444,7 +600,8 @@ function collectWorkspaceEvidence(receipt) {
   }
 }
 
-function parseGitStatus(statusText) {
+function parseGitStatus(statusText, receipt = null) {
+  const currentDraftPath = receipt ? normalizeUserPath(draftPath(receipt.id)) : null;
   return statusText
     .split('\n')
     .map((line) => line.trimEnd())
@@ -452,12 +609,14 @@ function parseGitStatus(statusText) {
     .map((line) => {
       const status = line.slice(0, 2).trim() || line.slice(0, 2);
       const path = line.slice(3).trim();
-      return {
-        path,
-        kind: gitStatusKind(status),
-        summary: `${status || 'changed'} ${path}`,
-      };
-    });
+      return { status, path };
+    })
+    .filter(({ path }) => path !== currentDraftPath)
+    .map(({ status, path }) => ({
+      path,
+      kind: gitStatusKind(status),
+      summary: `${status || 'changed'} ${path}`,
+    }));
 }
 
 function gitStatusKind(status) {
@@ -499,7 +658,7 @@ function updateVerificationSummary(receipt) {
 function inferRiskLevel(receipt) {
   const checks = receipt.verification.checks || [];
   if (checks.some((check) => check.status === 'failed')) return 'high';
-  if (checks.some((check) => check.status === 'not-run') || receipt.risk.notes.length > 0) return 'medium';
+  if (checks.length === 0 || checks.some((check) => check.status === 'not-run' || check.status === 'pending') || receipt.risk.notes.length > 0) return 'medium';
   return 'low';
 }
 
@@ -528,7 +687,8 @@ function openclaw(args) {
   const receipt = createOpenClawAgentEndReceipt(payload, eventPath);
   collectWorkspaceEvidence(receipt);
   updateVerificationSummary(receipt);
-  attachIntegrity(receipt);
+  applyReceiptPolicy(receipt, { requestedStatus: 'needs-review' });
+  attachIntegrity(receipt, process.cwd());
   assertValidReceipt(receipt);
 
   const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
@@ -697,28 +857,6 @@ function inferGitHubRepo() {
   const https = url.match(/^https:\/\/github\.com\/([^/]+\/[^/.]+)(?:\.git)?$/);
   if (https) return https[1];
   return null;
-}
-
-function attachIntegrity(receipt) {
-  const artifacts = [];
-  for (const entry of receipt.evidence || []) {
-    for (const key of ['path', 'output', 'stdout', 'stderr']) {
-      if (!entry[key]) continue;
-      const artifactPath = resolve(process.cwd(), entry[key]);
-      if (!existsSync(artifactPath)) continue;
-      artifacts.push({ path: normalizeUserPath(artifactPath), sha256: sha256File(artifactPath) });
-    }
-  }
-  const payload = JSON.stringify({ ...receipt, integrity: undefined });
-  receipt.integrity = {
-    algorithm: 'sha256',
-    receipt_payload_sha256: createHash('sha256').update(payload).digest('hex'),
-    artifacts,
-  };
-}
-
-function sha256File(path) {
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
 function parseOptions(args, spec) {

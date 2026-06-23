@@ -45,6 +45,13 @@ function validateReceipt(receipt) {
     requireArray(receipt.risk.notes, 'risk.notes', errors);
     requireArray(receipt.risk.assumptions, 'risk.assumptions', errors);
   }
+  if (receipt.policy !== undefined) {
+    requireObject(receipt.policy, 'policy', errors);
+    if (receipt.policy) {
+      requireString(receipt.policy.verdict, 'policy.verdict', errors);
+      requireArray(receipt.policy.reasons, 'policy.reasons', errors);
+    }
+  }
   requireString(receipt.recommended_next_action, 'recommended_next_action', errors);
   return errors;
 }
