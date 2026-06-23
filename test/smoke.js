@@ -59,6 +59,8 @@ assert(receipt.evidence.some((entry) => entry.kind === 'command' && entry.exit_c
 assert(receipt.verification.checks.some((check) => check.status === 'not-run'), 'not-run verification');
 assert(markdown.includes('## Evidence'), 'markdown evidence section');
 assert(markdown.includes('## Risks'), 'markdown risks section');
+assert(markdown.includes('## Integrity'), 'markdown integrity section');
+assert(receipt.integrity && receipt.integrity.receipt_payload_sha256, 'receipt integrity hash');
 
 console.log('CLI smoke test passed');
 

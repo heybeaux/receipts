@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_114159_a11c5d",
+  "created_at": "2026-06-23T11:41:59.459Z",
+  "updated_at": "2026-06-23T11:42:00.992Z",
+  "status": "draft",
+  "claim": {
+    "summary": "Refactor Receipts into modules + add schema, tests, GitHub adapter, integrity (v0.1)",
+    "details": "Split bin/receipts.js into src/ modules (cli, render-markdown, schema). Added JSON Schema in schemas/, unit tests, receipt schema validation on done, SHA-256 integrity hashing of payload + artifacts, and a 'receipts github comment' adapter using gh with --dry-run. Bumped version to 0.1.0."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {},
+  "changes": [],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stderr.log",
+      "created_at": "2026-06-23T11:42:00.973Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "v0.1 verification",
+      "created_at": "2026-06-23T11:42:00.992Z",
+      "note": "Refactor preserves CLI behavior; smoke + unit tests + OpenSpec validation all pass."
+    }
+  ],
+  "verification": {
+    "summary": "1 passed",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      }
+    ]
+  },
+  "risk": {
+    "level": "unknown",
+    "notes": [],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Review the receipt and supporting evidence."
+}

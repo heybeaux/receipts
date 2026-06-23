@@ -59,7 +59,7 @@
 
 ## 7. Follow-up Implementation Phase
 
-- [ ] 7.1 Extract schema/renderer into modules with unit tests.
-- [ ] 7.2 Add GitHub PR comment integration adapter.
+- [x] 7.1 Extract schema/renderer into modules with unit tests. (`src/` modules + `test/unit.js`, JSON Schema in `schemas/`.)
+- [x] 7.2 Add GitHub PR comment integration adapter. (`receipts github comment` via `gh`, with `--dry-run`.)
 - [ ] 7.3 Add OpenClaw task-completion receipt hook.
-- [ ] 7.4 Add content hashing for completed receipts.
+- [x] 7.4 Add content hashing for completed receipts. (SHA-256 payload + artifact hashes in `integrity`.)

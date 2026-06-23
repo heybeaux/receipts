@@ -48,13 +48,36 @@ Generated artifacts live under `.receipts/`:
 - `.receipts/markdown/<receipt-id>.md`
 - `.receipts/artifacts/<receipt-id>/...`
 
+### Post a receipt to a GitHub PR
+
+The completed receipt Markdown can be posted as a PR comment (requires `gh` authenticated):
+
+```bash
+receipts github comment --pr 123
+receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
+```
+
+With no `--receipt`, it uses the most recently completed receipt. With no `--repo`, it infers the repo from `origin`.
+
+### Integrity
+
+On `done`, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
+
+## Architecture
+
+- `bin/receipts.js` — thin entrypoint
+- `src/cli.js` — command dispatch and workflow
+- `src/render-markdown.js` — Markdown rendering
+- `src/schema.js` — receipt validation
+- `schemas/receipt.schema.json` — published JSON Schema for the receipt artifact
+
 ## Validation
 
 ```bash
 npm test
 ```
 
-This runs OpenSpec validation and the CLI smoke test.
+This runs OpenSpec validation, unit tests, and the CLI smoke test.
 
 ## OpenSpec
 

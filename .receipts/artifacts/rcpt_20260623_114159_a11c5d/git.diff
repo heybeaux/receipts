@@ -1,0 +1,1219 @@
+diff --git a/.receipts/active.json b/.receipts/active.json
+index ade777d..1837f41 100644
+--- a/.receipts/active.json
++++ b/.receipts/active.json
+@@ -1,5 +1,5 @@
+ {
+-  "id": null,
+-  "completed_id": "rcpt_20260623_111623_77cc59",
+-  "updated_at": "2026-06-23T11:16:24.894Z"
++  "id": "rcpt_20260623_114159_a11c5d",
++  "path": "/Users/beauxwalton/projects/receipts/.receipts/receipts/rcpt_20260623_114159_a11c5d.draft.json",
++  "updated_at": "2026-06-23T11:42:00.992Z"
+ }
+diff --git a/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log b/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log
+deleted file mode 100644
+index d6e99f7..0000000
+--- a/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log
++++ /dev/null
+@@ -1 +0,0 @@
+-- Validating...
+diff --git a/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log b/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log
+deleted file mode 100644
+index 8af19d8..0000000
+--- a/.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log
++++ /dev/null
+@@ -1,16 +0,0 @@
+-
+-> receipts@1.0.0 test
+-> npm run openspec:validate && npm run cli:smoke
+-
+-
+-> receipts@1.0.0 openspec:validate
+-> openspec validate define-receipts-v0 && openspec validate --all
+-
+-Change 'define-receipts-v0' is valid
+-✓ change/define-receipts-v0
+-Totals: 1 passed, 0 failed (1 items)
+-
+-> receipts@1.0.0 cli:smoke
+-> node test/smoke.js
+-
+-CLI smoke test passed
+diff --git a/.receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff b/.receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff
+deleted file mode 100644
+index 405cb24..0000000
+--- a/.receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff
++++ /dev/null
+@@ -1,124 +0,0 @@
+-diff --git a/README.md b/README.md
+-index 7922f73..7384c14 100644
+---- a/README.md
+-+++ b/README.md
+-@@ -15,6 +15,47 @@ The active OpenSpec migration lives at:
+- - [`openspec/changes/define-receipts-v0/design.md`](./openspec/changes/define-receipts-v0/design.md)
+- - [`openspec/changes/define-receipts-v0/tasks.md`](./openspec/changes/define-receipts-v0/tasks.md)
+- 
+-+## CLI
+-+
+-+Receipts now has a local-first Node.js CLI.
+-+
+-+```bash
+-+npm install
+-+npm run cli -- init
+-+npm run cli -- claim "Fixed auth callback bug" --details "Handled missing state."
+-+npm run cli -- evidence add --note "Reviewed changed callback flow." --label "Manual review"
+-+npm run cli -- run -- npm test
+-+npm run cli -- done \
+-+  --risk "OAuth provider edge cases not manually tested." \
+-+  --not-run "Browser OAuth smoke test" \
+-+  --next "Review diff and run browser smoke test."
+-+```
+-+
+-+When linked or installed as a package, the executable is `receipts`:
+-+
+-+```bash
+-+receipts init
+-+receipts claim "Fixed auth callback bug"
+-+receipts run -- npm test
+-+receipts done
+-+```
+-+
+-+Generated artifacts live under `.receipts/`:
+-+
+-+- `.receipts/config.json`
+-+- `.receipts/active.json`
+-+- `.receipts/receipts/<receipt-id>.json`
+-+- `.receipts/markdown/<receipt-id>.md`
+-+- `.receipts/artifacts/<receipt-id>/...`
+-+
+-+## Validation
+-+
+-+```bash
+-+npm test
+-+```
+-+
+-+This runs OpenSpec validation and the CLI smoke test.
+-+
+- ## OpenSpec
+- 
+- OpenSpec is installed as a local dev dependency.
+-diff --git a/openspec/changes/define-receipts-v0/tasks.md b/openspec/changes/define-receipts-v0/tasks.md
+-index e0e66de..5016a2e 100644
+---- a/openspec/changes/define-receipts-v0/tasks.md
+-+++ b/openspec/changes/define-receipts-v0/tasks.md
+-@@ -45,14 +45,21 @@
+- 
+- ## 6. Next Implementation Phase
+- 
+--- [ ] 6.1 Decide runtime language for the first CLI implementation.
+--- [ ] 6.2 Create initial receipt schema module.
+--- [ ] 6.3 Implement local filesystem layout.
+--- [ ] 6.4 Implement `receipts init`.
+--- [ ] 6.5 Implement `receipts claim`.
+--- [ ] 6.6 Implement `receipts evidence add`.
+--- [ ] 6.7 Implement `receipts run -- <command>`.
+--- [ ] 6.8 Implement `receipts done` with git metadata collection.
+--- [ ] 6.9 Render JSON receipts.
+--- [ ] 6.10 Render Markdown receipts.
+--- [ ] 6.11 Dogfood Receipts on the next agent-coded task.
+-+- [x] 6.1 Decide runtime language for the first CLI implementation. (Node.js, zero runtime deps.)
+-+- [x] 6.2 Create initial receipt schema module. (Inlined in `bin/receipts.js`, schema_version 0.1.0.)
+-+- [x] 6.3 Implement local filesystem layout. (`.receipts/` config/active/receipts/markdown/artifacts.)
+-+- [x] 6.4 Implement `receipts init`.
+-+- [x] 6.5 Implement `receipts claim`.
+-+- [x] 6.6 Implement `receipts evidence add`.
+-+- [x] 6.7 Implement `receipts run -- <command>`.
+-+- [x] 6.8 Implement `receipts done` with git metadata collection.
+-+- [x] 6.9 Render JSON receipts.
+-+- [x] 6.10 Render Markdown receipts.
+-+- [x] 6.11 Dogfood Receipts on the next agent-coded task. (Self-receipt generated for this CLI build.)
+-+
+-+## 7. Follow-up Implementation Phase
+-+
+-+- [ ] 7.1 Extract schema/renderer into modules with unit tests.
+-+- [ ] 7.2 Add GitHub PR comment integration adapter.
+-+- [ ] 7.3 Add OpenClaw task-completion receipt hook.
+-+- [ ] 7.4 Add content hashing for completed receipts.
+-diff --git a/package-lock.json b/package-lock.json
+-index 2bd7025..bd8a6a1 100644
+---- a/package-lock.json
+-+++ b/package-lock.json
+-@@ -8,6 +8,9 @@
+-       "name": "receipts",
+-       "version": "1.0.0",
+-       "license": "ISC",
+-+      "bin": {
+-+        "receipts": "bin/receipts.js"
+-+      },
+-       "devDependencies": {
+-         "@fission-ai/openspec": "^1.4.1"
+-       }
+-diff --git a/package.json b/package.json
+-index 52b5521..80e1550 100644
+---- a/package.json
+-+++ b/package.json
+-@@ -2,9 +2,14 @@
+-   "name": "receipts",
+-   "version": "1.0.0",
+-   "description": "Verifiable proof-of-work for AI teams.",
+--  "main": "index.js",
+-+  "main": "bin/receipts.js",
+-+  "bin": {
+-+    "receipts": "bin/receipts.js"
+-+  },
+-   "scripts": {
+--    "test": "npm run openspec:validate",
+-+    "test": "npm run openspec:validate && npm run cli:smoke",
+-+    "cli": "node bin/receipts.js",
+-+    "cli:smoke": "node test/smoke.js",
+-     "openspec:list": "openspec list",
+-     "openspec:show": "openspec show define-receipts-v0",
+-     "openspec:validate": "openspec validate define-receipts-v0 && openspec validate --all"
+diff --git a/.receipts/config.json b/.receipts/config.json
+index d93d4c2..2a05ac5 100644
+--- a/.receipts/config.json
++++ b/.receipts/config.json
+@@ -1,5 +1,5 @@
+ {
+   "schema_version": "0.1.0",
+   "default_status_on_done": "needs-review",
+-  "created_at": "2026-06-23T11:16:23.566Z"
++  "created_at": "2026-06-23T11:41:59.437Z"
+ }
+diff --git a/.receipts/markdown/rcpt_20260623_111623_77cc59.md b/.receipts/markdown/rcpt_20260623_111623_77cc59.md
+deleted file mode 100644
+index f5743f5..0000000
+--- a/.receipts/markdown/rcpt_20260623_111623_77cc59.md
++++ /dev/null
+@@ -1,53 +0,0 @@
+-# Receipt: Implement Receipts v0 CLI (tasks 6.1-6.11)
+-
+-**Status:** needs-review  
+-**Actor:** nori / sakana/fugu  
+-**Created:** 2026-06-23T11:16:23.589Z  
+-**Completed:** 2026-06-23T11:16:24.894Z  
+-**Receipt ID:** rcpt_20260623_111623_77cc59
+-
+-## Claim
+-
+-Built local-first Node.js CLI with zero runtime deps: init, claim, evidence add, run, done. Emits JSON + Markdown receipts, captures command output as evidence, and collects git workspace metadata/diff. Added smoke test wired into npm test, updated README and OpenSpec tasks, and dogfooded Receipts on itself.
+-
+-## Changes
+-
+-- `README.md` — modified (M README.md)
+-- `openspec/changes/define-receipts-v0/tasks.md` — modified (M openspec/changes/define-receipts-v0/tasks.md)
+-- `package-lock.json` — modified (M package-lock.json)
+-- `package.json` — modified (M package.json)
+-- `.receipts/` — added (?? .receipts/)
+-- `bin/` — added (?? bin/)
+-- `test/` — added (?? test/)
+-
+-## Evidence
+-
+-- npm test — command; command: `npm test`; exit code: 0; stdout: `.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log`; stderr: `.receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log`
+-- npm test result — note; OpenSpec validation + CLI smoke test both pass via npm test.
+-- Git diff at receipt completion — git-diff; path: `.receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff`
+-
+-## Verification
+-
+-**Summary:** 1 passed; 2 not run
+-
+-- ✅ **passed** — npm test (`npm test`; exit code 0)
+-- ⚪ **not-run** — Cross-platform shell quoting edge cases (Recorded during receipt completion.)
+-- ⚪ **not-run** — GitHub/OpenClaw integration adapters (Recorded during receipt completion.)
+-
+-## Risks
+-
+-**Level:** medium
+-
+-- No unit-level tests yet beyond the CLI smoke flow; modules not yet extracted.
+-
+-## Recommended Next Action
+-
+-Review CLI, then extract schema/renderer modules and add the GitHub PR comment adapter (tasks 7.x).
+-
+-## Workspace
+-
+-- Git available: yes
+-- Repo: `/Users/beauxwalton/projects/receipts`
+-- Branch: `master`
+-- Commit: `edce8b58371245f89cbbe36621e34bc2651cde22`
+-- Diff artifact: `.receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff`
+diff --git a/.receipts/receipts/rcpt_20260623_111623_77cc59.draft.json b/.receipts/receipts/rcpt_20260623_111623_77cc59.draft.json
+deleted file mode 100644
+index 8b44edb..0000000
+--- a/.receipts/receipts/rcpt_20260623_111623_77cc59.draft.json
++++ /dev/null
+@@ -1,63 +0,0 @@
+-{
+-  "schema_version": "0.1.0",
+-  "id": "rcpt_20260623_111623_77cc59",
+-  "created_at": "2026-06-23T11:16:23.589Z",
+-  "updated_at": "2026-06-23T11:16:24.872Z",
+-  "status": "draft",
+-  "claim": {
+-    "summary": "Implement Receipts v0 CLI (tasks 6.1-6.11)",
+-    "details": "Built local-first Node.js CLI with zero runtime deps: init, claim, evidence add, run, done. Emits JSON + Markdown receipts, captures command output as evidence, and collects git workspace metadata/diff. Added smoke test wired into npm test, updated README and OpenSpec tasks, and dogfooded Receipts on itself."
+-  },
+-  "actor": {
+-    "type": "agent",
+-    "id": "nori",
+-    "model": "sakana/fugu"
+-  },
+-  "task": {
+-    "source": "openclaw",
+-    "id": null,
+-    "url": null
+-  },
+-  "workspace": {},
+-  "changes": [],
+-  "evidence": [
+-    {
+-      "id": "ev_001",
+-      "kind": "command",
+-      "label": "npm test",
+-      "command": "npm test",
+-      "exit_code": 0,
+-      "stdout": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log",
+-      "stderr": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log",
+-      "created_at": "2026-06-23T11:16:24.851Z"
+-    },
+-    {
+-      "id": "ev_002",
+-      "kind": "note",
+-      "label": "npm test result",
+-      "created_at": "2026-06-23T11:16:24.872Z",
+-      "note": "OpenSpec validation + CLI smoke test both pass via npm test."
+-    }
+-  ],
+-  "verification": {
+-    "summary": "1 passed",
+-    "checks": [
+-      {
+-        "kind": "command",
+-        "label": "npm test",
+-        "status": "passed",
+-        "evidence_id": "ev_001",
+-        "command": "npm test",
+-        "exit_code": 0
+-      }
+-    ]
+-  },
+-  "risk": {
+-    "level": "unknown",
+-    "notes": [],
+-    "assumptions": [],
+-    "rollback": null
+-  },
+-  "integrations": {},
+-  "recommended_next_action": "Review the receipt and supporting evidence."
+-}
+diff --git a/.receipts/receipts/rcpt_20260623_111623_77cc59.json b/.receipts/receipts/rcpt_20260623_111623_77cc59.json
+deleted file mode 100644
+index 1a40a44..0000000
+--- a/.receipts/receipts/rcpt_20260623_111623_77cc59.json
++++ /dev/null
+@@ -1,129 +0,0 @@
+-{
+-  "schema_version": "0.1.0",
+-  "id": "rcpt_20260623_111623_77cc59",
+-  "created_at": "2026-06-23T11:16:23.589Z",
+-  "updated_at": "2026-06-23T11:16:24.894Z",
+-  "status": "needs-review",
+-  "claim": {
+-    "summary": "Implement Receipts v0 CLI (tasks 6.1-6.11)",
+-    "details": "Built local-first Node.js CLI with zero runtime deps: init, claim, evidence add, run, done. Emits JSON + Markdown receipts, captures command output as evidence, and collects git workspace metadata/diff. Added smoke test wired into npm test, updated README and OpenSpec tasks, and dogfooded Receipts on itself."
+-  },
+-  "actor": {
+-    "type": "agent",
+-    "id": "nori",
+-    "model": "sakana/fugu"
+-  },
+-  "task": {
+-    "source": "openclaw",
+-    "id": null,
+-    "url": null
+-  },
+-  "workspace": {
+-    "git_available": true,
+-    "repo": "/Users/beauxwalton/projects/receipts",
+-    "branch": "master",
+-    "commit_before": "edce8b58371245f89cbbe36621e34bc2651cde22",
+-    "commit_after": "edce8b58371245f89cbbe36621e34bc2651cde22",
+-    "git_status": "M README.md\n M openspec/changes/define-receipts-v0/tasks.md\n M package-lock.json\n M package.json\n?? .receipts/\n?? bin/\n?? test/",
+-    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff"
+-  },
+-  "changes": [
+-    {
+-      "path": "README.md",
+-      "kind": "modified",
+-      "summary": "M README.md"
+-    },
+-    {
+-      "path": "openspec/changes/define-receipts-v0/tasks.md",
+-      "kind": "modified",
+-      "summary": "M openspec/changes/define-receipts-v0/tasks.md"
+-    },
+-    {
+-      "path": "package-lock.json",
+-      "kind": "modified",
+-      "summary": "M package-lock.json"
+-    },
+-    {
+-      "path": "package.json",
+-      "kind": "modified",
+-      "summary": "M package.json"
+-    },
+-    {
+-      "path": ".receipts/",
+-      "kind": "added",
+-      "summary": "?? .receipts/"
+-    },
+-    {
+-      "path": "bin/",
+-      "kind": "added",
+-      "summary": "?? bin/"
+-    },
+-    {
+-      "path": "test/",
+-      "kind": "added",
+-      "summary": "?? test/"
+-    }
+-  ],
+-  "evidence": [
+-    {
+-      "id": "ev_001",
+-      "kind": "command",
+-      "label": "npm test",
+-      "command": "npm test",
+-      "exit_code": 0,
+-      "stdout": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log",
+-      "stderr": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log",
+-      "created_at": "2026-06-23T11:16:24.851Z"
+-    },
+-    {
+-      "id": "ev_002",
+-      "kind": "note",
+-      "label": "npm test result",
+-      "created_at": "2026-06-23T11:16:24.872Z",
+-      "note": "OpenSpec validation + CLI smoke test both pass via npm test."
+-    },
+-    {
+-      "id": "ev_003",
+-      "kind": "git-diff",
+-      "label": "Git diff at receipt completion",
+-      "path": ".receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff",
+-      "created_at": "2026-06-23T11:16:24.937Z"
+-    }
+-  ],
+-  "verification": {
+-    "summary": "1 passed; 2 not run",
+-    "checks": [
+-      {
+-        "kind": "command",
+-        "label": "npm test",
+-        "status": "passed",
+-        "evidence_id": "ev_001",
+-        "command": "npm test",
+-        "exit_code": 0
+-      },
+-      {
+-        "kind": "manual",
+-        "label": "Cross-platform shell quoting edge cases",
+-        "status": "not-run",
+-        "explanation": "Recorded during receipt completion."
+-      },
+-      {
+-        "kind": "manual",
+-        "label": "GitHub/OpenClaw integration adapters",
+-        "status": "not-run",
+-        "explanation": "Recorded during receipt completion."
+-      }
+-    ]
+-  },
+-  "risk": {
+-    "level": "medium",
+-    "notes": [
+-      "No unit-level tests yet beyond the CLI smoke flow; modules not yet extracted."
+-    ],
+-    "assumptions": [],
+-    "rollback": null
+-  },
+-  "integrations": {},
+-  "recommended_next_action": "Review CLI, then extract schema/renderer modules and add the GitHub PR comment adapter (tasks 7.x).",
+-  "completed_at": "2026-06-23T11:16:24.894Z"
+-}
+diff --git a/README.md b/README.md
+index 7384c14..14a7f71 100644
+--- a/README.md
++++ b/README.md
+@@ -48,13 +48,36 @@ Generated artifacts live under `.receipts/`:
+ - `.receipts/markdown/<receipt-id>.md`
+ - `.receipts/artifacts/<receipt-id>/...`
+ 
++### Post a receipt to a GitHub PR
++
++The completed receipt Markdown can be posted as a PR comment (requires `gh` authenticated):
++
++```bash
++receipts github comment --pr 123
++receipts github comment --pr 123 --repo heybeaux/receipts --dry-run
++```
++
++With no `--receipt`, it uses the most recently completed receipt. With no `--repo`, it infers the repo from `origin`.
++
++### Integrity
++
++On `done`, every receipt records a SHA-256 hash of its own payload plus SHA-256 hashes of captured artifacts under `integrity`, so tampering with a stored receipt or its evidence is detectable.
++
++## Architecture
++
++- `bin/receipts.js` — thin entrypoint
++- `src/cli.js` — command dispatch and workflow
++- `src/render-markdown.js` — Markdown rendering
++- `src/schema.js` — receipt validation
++- `schemas/receipt.schema.json` — published JSON Schema for the receipt artifact
++
+ ## Validation
+ 
+ ```bash
+ npm test
+ ```
+ 
+-This runs OpenSpec validation and the CLI smoke test.
++This runs OpenSpec validation, unit tests, and the CLI smoke test.
+ 
+ ## OpenSpec
+ 
+diff --git a/bin/receipts.js b/bin/receipts.js
+index bffc775..d7e9d8f 100755
+--- a/bin/receipts.js
++++ b/bin/receipts.js
+@@ -1,655 +1,5 @@
+ #!/usr/bin/env node
+ 
+-const { spawnSync } = require('node:child_process');
+-const { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+-const { basename, dirname, isAbsolute, join, relative, resolve } = require('node:path');
+-const { randomBytes } = require('node:crypto');
++const { main } = require('../src/cli');
+ 
+-const SCHEMA_VERSION = '0.1.0';
+-const RECEIPTS_DIR = '.receipts';
+-const CONFIG_FILE = 'config.json';
+-const ACTIVE_FILE = 'active.json';
+-const RECEIPTS_SUBDIR = 'receipts';
+-const MARKDOWN_SUBDIR = 'markdown';
+-const ARTIFACTS_SUBDIR = 'artifacts';
+-
+-function main() {
+-  const args = process.argv.slice(2);
+-  const command = args.shift();
+-
+-  try {
+-    switch (command) {
+-      case 'init':
+-        init();
+-        break;
+-      case 'claim':
+-        claim(args);
+-        break;
+-      case 'evidence':
+-        evidence(args);
+-        break;
+-      case 'run':
+-        run(args);
+-        break;
+-      case 'done':
+-        done(args);
+-        break;
+-      case 'help':
+-      case '--help':
+-      case '-h':
+-      case undefined:
+-        printHelp();
+-        break;
+-      case '--version':
+-      case '-v':
+-        console.log(readPackageVersion());
+-        break;
+-      default:
+-        fail(`Unknown command: ${command}\n\nRun receipts --help for usage.`, 64);
+-    }
+-  } catch (error) {
+-    if (error && typeof error.exitCode === 'number') {
+-      console.error(error.message);
+-      process.exit(error.exitCode);
+-    }
+-    console.error(error && error.message ? error.message : String(error));
+-    process.exit(1);
+-  }
+-}
+-
+-function printHelp() {
+-  console.log(`Receipts — verifiable proof-of-work for AI teams.
+-
+-Usage:
+-  receipts init
+-  receipts claim <summary> [--details <text>] [--actor-id <id>] [--actor-type <type>] [--model <model>]
+-  receipts evidence add [--kind <kind>] [--label <label>] [--file <path>] [--link <url>] [--note <text>] [--cmd <command>] [--exit-code <code>] [--output <path>]
+-  receipts run -- <command> [args...]
+-  receipts done [--risk <note>] [--not-run <check>] [--next <action>] [--self-verified]
+-
+-Examples:
+-  receipts init
+-  receipts claim "Fixed auth callback bug" --details "Handled missing state."
+-  receipts run -- npm test
+-  receipts evidence add --file screenshots/login.png --kind screenshot --label "Login smoke test"
+-  receipts done --risk "OAuth provider edge cases not manually tested." --not-run "Browser OAuth smoke test" --next "Review diff and run browser smoke test."
+-`);
+-}
+-
+-function init() {
+-  ensureDir(RECEIPTS_DIR);
+-  ensureDir(pathInReceipts(RECEIPTS_SUBDIR));
+-  ensureDir(pathInReceipts(MARKDOWN_SUBDIR));
+-  ensureDir(pathInReceipts(ARTIFACTS_SUBDIR));
+-
+-  const configPath = pathInReceipts(CONFIG_FILE);
+-  if (!existsSync(configPath)) {
+-    writeJson(configPath, {
+-      schema_version: SCHEMA_VERSION,
+-      default_status_on_done: 'needs-review',
+-      created_at: new Date().toISOString(),
+-    });
+-  }
+-
+-  console.log(`Initialized ${RECEIPTS_DIR}/`);
+-}
+-
+-function claim(args) {
+-  ensureInitialized();
+-  const parsed = parseOptions(args, {
+-    string: ['details', 'actor-id', 'actor-type', 'model', 'task-source', 'task-id', 'task-url'],
+-  });
+-
+-  const summary = parsed.positionals.join(' ').trim();
+-  if (!summary) fail('Claim summary is required. Example: receipts claim "Fixed auth callback bug"', 64);
+-
+-  const id = createReceiptId();
+-  const now = new Date().toISOString();
+-  const receipt = {
+-    schema_version: SCHEMA_VERSION,
+-    id,
+-    created_at: now,
+-    updated_at: now,
+-    status: 'draft',
+-    claim: {
+-      summary,
+-      details: parsed.options.details || null,
+-    },
+-    actor: {
+-      type: parsed.options['actor-type'] || process.env.RECEIPTS_ACTOR_TYPE || 'agent',
+-      id: parsed.options['actor-id'] || process.env.RECEIPTS_ACTOR_ID || process.env.USER || 'unknown',
+-      model: parsed.options.model || process.env.RECEIPTS_MODEL || null,
+-    },
+-    task: {
+-      source: parsed.options['task-source'] || 'manual',
+-      id: parsed.options['task-id'] || null,
+-      url: parsed.options['task-url'] || null,
+-    },
+-    workspace: {},
+-    changes: [],
+-    evidence: [],
+-    verification: {
+-      summary: 'No verification checks recorded yet.',
+-      checks: [],
+-    },
+-    risk: {
+-      level: 'unknown',
+-      notes: [],
+-      assumptions: [],
+-      rollback: null,
+-    },
+-    integrations: {},
+-    recommended_next_action: 'Review the receipt and supporting evidence.',
+-  };
+-
+-  writeReceiptDraft(receipt);
+-  writeJson(pathInReceipts(ACTIVE_FILE), { id, path: draftPath(id), updated_at: now });
+-  console.log(`Started receipt ${id}`);
+-}
+-
+-function evidence(args) {
+-  ensureInitialized();
+-  const subcommand = args.shift();
+-  if (subcommand !== 'add') fail('Only `receipts evidence add` is supported right now.', 64);
+-
+-  const parsed = parseOptions(args, {
+-    string: ['kind', 'label', 'file', 'link', 'note', 'cmd', 'exit-code', 'output'],
+-  });
+-
+-  const receipt = loadActiveReceipt();
+-  const kind = parsed.options.kind || inferEvidenceKind(parsed.options);
+-  const label = parsed.options.label || defaultEvidenceLabel(kind, parsed.options);
+-  const id = nextEvidenceId(receipt);
+-  const evidenceEntry = {
+-    id,
+-    kind,
+-    label,
+-    created_at: new Date().toISOString(),
+-  };
+-
+-  if (parsed.options.cmd) evidenceEntry.command = parsed.options.cmd;
+-  if (parsed.options['exit-code'] !== undefined) evidenceEntry.exit_code = parseExitCode(parsed.options['exit-code']);
+-  if (parsed.options.link) evidenceEntry.url = parsed.options.link;
+-  if (parsed.options.note) evidenceEntry.note = parsed.options.note;
+-
+-  if (parsed.options.file) {
+-    evidenceEntry.path = normalizeUserPath(parsed.options.file);
+-  }
+-
+-  if (parsed.options.output) {
+-    evidenceEntry.output = normalizeUserPath(parsed.options.output);
+-  }
+-
+-  if (!evidenceEntry.command && !evidenceEntry.path && !evidenceEntry.url && !evidenceEntry.note && !evidenceEntry.output) {
+-    fail('Evidence needs at least one of --file, --link, --note, --cmd, or --output.', 64);
+-  }
+-
+-  receipt.evidence.push(evidenceEntry);
+-  if (evidenceEntry.command) {
+-    receipt.verification.checks.push({
+-      kind: 'command',
+-      label,
+-      status: evidenceEntry.exit_code === 0 ? 'passed' : evidenceEntry.exit_code === undefined ? 'pending' : 'failed',
+-      evidence_id: id,
+-      command: evidenceEntry.command,
+-      exit_code: evidenceEntry.exit_code ?? null,
+-    });
+-  }
+-  updateVerificationSummary(receipt);
+-  saveActiveReceipt(receipt);
+-  console.log(`Added ${kind} evidence to ${receipt.id}`);
+-}
+-
+-function run(args) {
+-  ensureInitialized();
+-  const separatorIndex = args.indexOf('--');
+-  const commandArgs = separatorIndex >= 0 ? args.slice(separatorIndex + 1) : args;
+-  if (commandArgs.length === 0) fail('Command is required. Example: receipts run -- npm test', 64);
+-
+-  const receipt = loadActiveReceipt();
+-  const evidenceId = nextEvidenceId(receipt);
+-  const artifactDir = artifactDirFor(receipt.id);
+-  ensureDir(artifactDir);
+-  const ordinal = String(receipt.evidence.length + 1).padStart(3, '0');
+-  const stdoutPath = join(artifactDir, `command-${ordinal}.stdout.log`);
+-  const stderrPath = join(artifactDir, `command-${ordinal}.stderr.log`);
+-  const commandString = shellQuote(commandArgs);
+-
+-  const result = spawnSync(commandArgs[0], commandArgs.slice(1), {
+-    cwd: process.cwd(),
+-    env: process.env,
+-    encoding: 'utf8',
+-    maxBuffer: 20 * 1024 * 1024,
+-  });
+-
+-  const stdout = result.stdout || '';
+-  const stderr = result.stderr || '';
+-  writeFileSync(stdoutPath, stdout);
+-  writeFileSync(stderrPath, stderr);
+-
+-  if (stdout) process.stdout.write(stdout);
+-  if (stderr) process.stderr.write(stderr);
+-
+-  const exitCode = typeof result.status === 'number' ? result.status : result.error ? 1 : 0;
+-  const evidenceEntry = {
+-    id: evidenceId,
+-    kind: 'command',
+-    label: commandString,
+-    command: commandString,
+-    exit_code: exitCode,
+-    stdout: normalizeUserPath(stdoutPath),
+-    stderr: normalizeUserPath(stderrPath),
+-    created_at: new Date().toISOString(),
+-  };
+-
+-  if (result.error) evidenceEntry.error = result.error.message;
+-
+-  receipt.evidence.push(evidenceEntry);
+-  receipt.verification.checks.push({
+-    kind: 'command',
+-    label: commandString,
+-    status: exitCode === 0 ? 'passed' : 'failed',
+-    evidence_id: evidenceId,
+-    command: commandString,
+-    exit_code: exitCode,
+-  });
+-  updateVerificationSummary(receipt);
+-  saveActiveReceipt(receipt);
+-
+-  process.exit(exitCode);
+-}
+-
+-function done(args) {
+-  ensureInitialized();
+-  const parsed = parseOptions(args, {
+-    string: ['risk', 'assumption', 'rollback', 'not-run', 'next'],
+-    boolean: ['self-verified'],
+-    repeatable: ['risk', 'assumption', 'not-run'],
+-  });
+-
+-  const receipt = loadActiveReceipt();
+-  const now = new Date().toISOString();
+-  receipt.updated_at = now;
+-  receipt.completed_at = now;
+-  receipt.status = parsed.options['self-verified'] ? 'self-verified' : readDefaultDoneStatus();
+-
+-  for (const risk of asArray(parsed.options.risk)) receipt.risk.notes.push(risk);
+-  for (const assumption of asArray(parsed.options.assumption)) receipt.risk.assumptions.push(assumption);
+-  if (parsed.options.rollback) receipt.risk.rollback = parsed.options.rollback;
+-  if (receipt.risk.notes.length === 0 && receipt.risk.assumptions.length === 0) {
+-    receipt.risk.notes.push('No known risks were identified. Review is still recommended.');
+-  }
+-  receipt.risk.level = inferRiskLevel(receipt);
+-
+-  for (const notRun of asArray(parsed.options['not-run'])) {
+-    receipt.verification.checks.push({
+-      kind: 'manual',
+-      label: notRun,
+-      status: 'not-run',
+-      explanation: 'Recorded during receipt completion.',
+-    });
+-  }
+-  if (parsed.options.next) receipt.recommended_next_action = parsed.options.next;
+-
+-  collectWorkspaceEvidence(receipt);
+-  updateVerificationSummary(receipt);
+-
+-  const receiptPath = pathInReceipts(RECEIPTS_SUBDIR, `${receipt.id}.json`);
+-  const markdownPath = pathInReceipts(MARKDOWN_SUBDIR, `${receipt.id}.md`);
+-  writeJson(receiptPath, receipt);
+-  writeFileSync(markdownPath, renderMarkdown(receipt));
+-  writeJson(pathInReceipts(ACTIVE_FILE), { id: null, completed_id: receipt.id, updated_at: now });
+-
+-  console.log(`Receipt completed: ${receipt.id}`);
+-  console.log(`JSON: ${normalizeUserPath(receiptPath)}`);
+-  console.log(`Markdown: ${normalizeUserPath(markdownPath)}`);
+-}
+-
+-function ensureInitialized() {
+-  if (!existsSync(RECEIPTS_DIR)) init();
+-  ensureDir(pathInReceipts(RECEIPTS_SUBDIR));
+-  ensureDir(pathInReceipts(MARKDOWN_SUBDIR));
+-  ensureDir(pathInReceipts(ARTIFACTS_SUBDIR));
+-}
+-
+-function pathInReceipts(...parts) {
+-  return join(process.cwd(), RECEIPTS_DIR, ...parts);
+-}
+-
+-function draftPath(id) {
+-  return pathInReceipts(RECEIPTS_SUBDIR, `${id}.draft.json`);
+-}
+-
+-function artifactDirFor(id) {
+-  return pathInReceipts(ARTIFACTS_SUBDIR, id);
+-}
+-
+-function writeReceiptDraft(receipt) {
+-  writeJson(draftPath(receipt.id), receipt);
+-}
+-
+-function loadActiveReceipt() {
+-  const activePath = pathInReceipts(ACTIVE_FILE);
+-  if (!existsSync(activePath)) fail('No active receipt. Start one with: receipts claim "..."', 65);
+-  const active = readJson(activePath);
+-  if (!active.id) fail('No active receipt. Start one with: receipts claim "..."', 65);
+-  const path = active.path || draftPath(active.id);
+-  if (!existsSync(path)) fail(`Active receipt file not found: ${path}`, 66);
+-  return readJson(path);
+-}
+-
+-function saveActiveReceipt(receipt) {
+-  receipt.updated_at = new Date().toISOString();
+-  writeReceiptDraft(receipt);
+-  writeJson(pathInReceipts(ACTIVE_FILE), { id: receipt.id, path: draftPath(receipt.id), updated_at: receipt.updated_at });
+-}
+-
+-function createReceiptId() {
+-  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z').replace('T', '_').replace('Z', '');
+-  return `rcpt_${stamp}_${randomBytes(3).toString('hex')}`;
+-}
+-
+-function nextEvidenceId(receipt) {
+-  return `ev_${String((receipt.evidence || []).length + 1).padStart(3, '0')}`;
+-}
+-
+-function inferEvidenceKind(options) {
+-  if (options.cmd) return 'command';
+-  if (options.link) return 'link';
+-  if (options.note) return 'note';
+-  if (options.file) return 'file';
+-  return 'manual';
+-}
+-
+-function defaultEvidenceLabel(kind, options) {
+-  if (options.cmd) return options.cmd;
+-  if (options.link) return options.link;
+-  if (options.file) return basename(options.file);
+-  if (options.note) return 'Manual note';
+-  return kind;
+-}
+-
+-function parseExitCode(value) {
+-  const number = Number(value);
+-  if (!Number.isInteger(number) || number < 0) fail(`Invalid exit code: ${value}`, 64);
+-  return number;
+-}
+-
+-function collectWorkspaceEvidence(receipt) {
+-  const gitRoot = git(['rev-parse', '--show-toplevel']);
+-  if (!gitRoot.ok) {
+-    receipt.workspace = {
+-      ...receipt.workspace,
+-      git_available: false,
+-      git_error: clean(gitRoot.stderr || gitRoot.stdout || 'Not a git repository.'),
+-    };
+-    return;
+-  }
+-
+-  const branch = git(['branch', '--show-current']);
+-  const commit = git(['rev-parse', 'HEAD']);
+-  const status = git(['status', '--porcelain=v1']);
+-  const diff = git(['diff', '--binary']);
+-  const diffStaged = git(['diff', '--cached', '--binary']);
+-  const artifactDir = artifactDirFor(receipt.id);
+-  ensureDir(artifactDir);
+-  const diffPath = join(artifactDir, 'git.diff');
+-  const combinedDiff = [diff.stdout || '', diffStaged.stdout ? `\n# Staged diff\n${diffStaged.stdout}` : ''].join('');
+-  writeFileSync(diffPath, combinedDiff || '');
+-
+-  receipt.workspace = {
+-    ...receipt.workspace,
+-    git_available: true,
+-    repo: clean(gitRoot.stdout),
+-    branch: clean(branch.stdout) || null,
+-    commit_before: receipt.workspace.commit_before || clean(commit.stdout) || null,
+-    commit_after: clean(commit.stdout) || null,
+-    git_status: clean(status.stdout) || 'clean',
+-    git_diff_artifact: normalizeUserPath(diffPath),
+-  };
+-
+-  receipt.changes = parseGitStatus(status.stdout || '');
+-
+-  const hasGitDiffEvidence = receipt.evidence.some((entry) => entry.kind === 'git-diff');
+-  if (!hasGitDiffEvidence) {
+-    const id = nextEvidenceId(receipt);
+-    receipt.evidence.push({
+-      id,
+-      kind: 'git-diff',
+-      label: 'Git diff at receipt completion',
+-      path: normalizeUserPath(diffPath),
+-      created_at: new Date().toISOString(),
+-    });
+-  }
+-}
+-
+-function parseGitStatus(statusText) {
+-  return statusText
+-    .split('\n')
+-    .map((line) => line.trimEnd())
+-    .filter(Boolean)
+-    .map((line) => {
+-      const status = line.slice(0, 2).trim() || line.slice(0, 2);
+-      const path = line.slice(3).trim();
+-      return {
+-        path,
+-        kind: gitStatusKind(status),
+-        summary: `${status || 'changed'} ${path}`,
+-      };
+-    });
+-}
+-
+-function gitStatusKind(status) {
+-  if (status.includes('A') || status.includes('?')) return 'added';
+-  if (status.includes('D')) return 'deleted';
+-  if (status.includes('R')) return 'renamed';
+-  if (status.includes('M')) return 'modified';
+-  return 'changed';
+-}
+-
+-function git(args) {
+-  const result = spawnSync('git', args, { cwd: process.cwd(), encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+-  return {
+-    ok: result.status === 0,
+-    stdout: result.stdout || '',
+-    stderr: result.stderr || '',
+-    status: result.status,
+-  };
+-}
+-
+-function updateVerificationSummary(receipt) {
+-  const checks = receipt.verification.checks || [];
+-  if (checks.length === 0) {
+-    receipt.verification.summary = 'No verification checks were recorded.';
+-    return;
+-  }
+-  const counts = checks.reduce((acc, check) => {
+-    acc[check.status] = (acc[check.status] || 0) + 1;
+-    return acc;
+-  }, {});
+-  receipt.verification.summary = [
+-    counts.passed ? `${counts.passed} passed` : null,
+-    counts.failed ? `${counts.failed} failed` : null,
+-    counts.pending ? `${counts.pending} pending` : null,
+-    counts['not-run'] ? `${counts['not-run']} not run` : null,
+-  ].filter(Boolean).join('; ') || 'Verification recorded.';
+-}
+-
+-function inferRiskLevel(receipt) {
+-  const checks = receipt.verification.checks || [];
+-  if (checks.some((check) => check.status === 'failed')) return 'high';
+-  if (checks.some((check) => check.status === 'not-run') || receipt.risk.notes.length > 0) return 'medium';
+-  return 'low';
+-}
+-
+-function readDefaultDoneStatus() {
+-  const configPath = pathInReceipts(CONFIG_FILE);
+-  if (!existsSync(configPath)) return 'needs-review';
+-  const config = readJson(configPath);
+-  return config.default_status_on_done || 'needs-review';
+-}
+-
+-function renderMarkdown(receipt) {
+-  const actor = [receipt.actor && receipt.actor.id, receipt.actor && receipt.actor.model].filter(Boolean).join(' / ') || 'unknown';
+-  const changes = receipt.changes && receipt.changes.length
+-    ? receipt.changes.map((change) => `- \`${change.path}\` — ${change.kind}${change.summary ? ` (${change.summary})` : ''}`).join('\n')
+-    : '- No changed files recorded.';
+-  const evidence = receipt.evidence && receipt.evidence.length
+-    ? receipt.evidence.map(renderEvidenceLine).join('\n')
+-    : '- No evidence attached.';
+-  const checks = receipt.verification.checks && receipt.verification.checks.length
+-    ? receipt.verification.checks.map(renderCheckLine).join('\n')
+-    : '- No verification checks recorded.';
+-  const risks = [
+-    ...(receipt.risk.notes || []),
+-    ...(receipt.risk.assumptions || []).map((assumption) => `Assumption: ${assumption}`),
+-    receipt.risk.rollback ? `Rollback: ${receipt.risk.rollback}` : null,
+-  ].filter(Boolean);
+-
+-  return `# Receipt: ${receipt.claim.summary}
+-
+-**Status:** ${receipt.status}  
+-**Actor:** ${actor}  
+-**Created:** ${receipt.created_at}  
+-**Completed:** ${receipt.completed_at || 'Not completed'}  
+-**Receipt ID:** ${receipt.id}
+-
+-## Claim
+-
+-${receipt.claim.details || receipt.claim.summary}
+-
+-## Changes
+-
+-${changes}
+-
+-## Evidence
+-
+-${evidence}
+-
+-## Verification
+-
+-**Summary:** ${receipt.verification.summary}
+-
+-${checks}
+-
+-## Risks
+-
+-**Level:** ${receipt.risk.level}
+-
+-${risks.length ? risks.map((risk) => `- ${risk}`).join('\n') : '- No known risks were identified.'}
+-
+-## Recommended Next Action
+-
+-${receipt.recommended_next_action}
+-
+-## Workspace
+-
+-- Git available: ${receipt.workspace.git_available === false ? 'no' : receipt.workspace.git_available ? 'yes' : 'unknown'}
+-${receipt.workspace.repo ? `- Repo: \`${receipt.workspace.repo}\`\n` : ''}${receipt.workspace.branch ? `- Branch: \`${receipt.workspace.branch}\`\n` : ''}${receipt.workspace.commit_after ? `- Commit: \`${receipt.workspace.commit_after}\`\n` : ''}${receipt.workspace.git_diff_artifact ? `- Diff artifact: \`${receipt.workspace.git_diff_artifact}\`\n` : ''}`;
+-}
+-
+-function renderEvidenceLine(entry) {
+-  const parts = [`- ${entry.label || entry.kind} — ${entry.kind}`];
+-  if (entry.command) parts.push(`command: \`${entry.command}\``);
+-  if (entry.exit_code !== undefined) parts.push(`exit code: ${entry.exit_code}`);
+-  if (entry.path) parts.push(`path: \`${entry.path}\``);
+-  if (entry.output) parts.push(`output: \`${entry.output}\``);
+-  if (entry.stdout) parts.push(`stdout: \`${entry.stdout}\``);
+-  if (entry.stderr) parts.push(`stderr: \`${entry.stderr}\``);
+-  if (entry.url) parts.push(`url: ${entry.url}`);
+-  if (entry.note) parts.push(entry.note);
+-  return parts.join('; ');
+-}
+-
+-function renderCheckLine(check) {
+-  const icon = check.status === 'passed' ? '✅' : check.status === 'failed' ? '❌' : check.status === 'not-run' ? '⚪' : '🟡';
+-  const details = [];
+-  if (check.command) details.push(`\`${check.command}\``);
+-  if (check.exit_code !== undefined && check.exit_code !== null) details.push(`exit code ${check.exit_code}`);
+-  if (check.explanation) details.push(check.explanation);
+-  return `- ${icon} **${check.status}** — ${check.label}${details.length ? ` (${details.join('; ')})` : ''}`;
+-}
+-
+-function parseOptions(args, spec) {
+-  const options = {};
+-  const positionals = [];
+-  const stringOptions = new Set(spec.string || []);
+-  const booleanOptions = new Set(spec.boolean || []);
+-  const repeatableOptions = new Set(spec.repeatable || []);
+-
+-  for (let i = 0; i < args.length; i += 1) {
+-    const arg = args[i];
+-    if (arg === '--') {
+-      positionals.push(...args.slice(i + 1));
+-      break;
+-    }
+-    if (!arg.startsWith('--')) {
+-      positionals.push(arg);
+-      continue;
+-    }
+-
+-    const eq = arg.indexOf('=');
+-    const key = arg.slice(2, eq > -1 ? eq : undefined);
+-    if (booleanOptions.has(key)) {
+-      options[key] = true;
+-      continue;
+-    }
+-    if (!stringOptions.has(key)) fail(`Unknown option: --${key}`, 64);
+-
+-    const value = eq > -1 ? arg.slice(eq + 1) : args[++i];
+-    if (value === undefined) fail(`Missing value for --${key}`, 64);
+-    if (repeatableOptions.has(key)) {
+-      if (!Array.isArray(options[key])) options[key] = [];
+-      options[key].push(value);
+-    } else {
+-      options[key] = value;
+-    }
+-  }
+-
+-  return { options, positionals };
+-}
+-
+-function asArray(value) {
+-  if (value === undefined || value === null) return [];
+-  return Array.isArray(value) ? value : [value];
+-}
+-
+-function readJson(path) {
+-  return JSON.parse(readFileSync(path, 'utf8'));
+-}
+-
+-function writeJson(path, value) {
+-  ensureDir(dirname(path));
+-  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+-}
+-
+-function ensureDir(path) {
+-  mkdirSync(path, { recursive: true });
+-}
+-
+-function normalizeUserPath(path) {
+-  const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path);
+-  return relative(process.cwd(), absolute) || '.';
+-}
+-
+-function clean(text) {
+-  return String(text || '').trim();
+-}
+-
+-function shellQuote(args) {
+-  return args.map((arg) => /^[A-Za-z0-9_./:=@+-]+$/.test(arg) ? arg : `'${String(arg).replace(/'/g, `'\\''`)}'`).join(' ');
+-}
+-
+-function readPackageVersion() {
+-  const packagePath = join(__dirname, '..', 'package.json');
+-  if (!existsSync(packagePath)) return '0.0.0';
+-  return readJson(packagePath).version || '0.0.0';
+-}
+-
+-function fail(message, exitCode = 1) {
+-  const error = new Error(message);
+-  error.exitCode = exitCode;
+-  throw error;
+-}
+-
+-main();
++main(process.argv.slice(2));
+diff --git a/openspec/changes/define-receipts-v0/tasks.md b/openspec/changes/define-receipts-v0/tasks.md
+index 5016a2e..d0cc6b6 100644
+--- a/openspec/changes/define-receipts-v0/tasks.md
++++ b/openspec/changes/define-receipts-v0/tasks.md
+@@ -59,7 +59,7 @@
+ 
+ ## 7. Follow-up Implementation Phase
+ 
+-- [ ] 7.1 Extract schema/renderer into modules with unit tests.
+-- [ ] 7.2 Add GitHub PR comment integration adapter.
++- [x] 7.1 Extract schema/renderer into modules with unit tests. (`src/` modules + `test/unit.js`, JSON Schema in `schemas/`.)
++- [x] 7.2 Add GitHub PR comment integration adapter. (`receipts github comment` via `gh`, with `--dry-run`.)
+ - [ ] 7.3 Add OpenClaw task-completion receipt hook.
+-- [ ] 7.4 Add content hashing for completed receipts.
++- [x] 7.4 Add content hashing for completed receipts. (SHA-256 payload + artifact hashes in `integrity`.)
+diff --git a/package-lock.json b/package-lock.json
+index bd8a6a1..d3f7335 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "receipts",
+-  "version": "1.0.0",
++  "version": "0.1.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "receipts",
+-      "version": "1.0.0",
++      "version": "0.1.0",
+       "license": "ISC",
+       "bin": {
+         "receipts": "bin/receipts.js"
+diff --git a/package.json b/package.json
+index 80e1550..2125e8e 100644
+--- a/package.json
++++ b/package.json
+@@ -1,13 +1,14 @@
+ {
+   "name": "receipts",
+-  "version": "1.0.0",
++  "version": "0.1.0",
+   "description": "Verifiable proof-of-work for AI teams.",
+-  "main": "bin/receipts.js",
++  "main": "src/cli.js",
+   "bin": {
+     "receipts": "bin/receipts.js"
+   },
+   "scripts": {
+-    "test": "npm run openspec:validate && npm run cli:smoke",
++    "test": "npm run openspec:validate && npm run test:unit && npm run cli:smoke",
++    "test:unit": "node test/unit.js",
+     "cli": "node bin/receipts.js",
+     "cli:smoke": "node test/smoke.js",
+     "openspec:list": "openspec list",
+diff --git a/test/smoke.js b/test/smoke.js
+index c9ba37c..b3d474b 100644
+--- a/test/smoke.js
++++ b/test/smoke.js
+@@ -59,6 +59,8 @@ assert(receipt.evidence.some((entry) => entry.kind === 'command' && entry.exit_c
+ assert(receipt.verification.checks.some((check) => check.status === 'not-run'), 'not-run verification');
+ assert(markdown.includes('## Evidence'), 'markdown evidence section');
+ assert(markdown.includes('## Risks'), 'markdown risks section');
++assert(markdown.includes('## Integrity'), 'markdown integrity section');
++assert(receipt.integrity && receipt.integrity.receipt_payload_sha256, 'receipt integrity hash');
+ 
+ console.log('CLI smoke test passed');
+ 

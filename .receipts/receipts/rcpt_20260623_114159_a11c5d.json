@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1.0",
+  "id": "rcpt_20260623_114159_a11c5d",
+  "created_at": "2026-06-23T11:41:59.459Z",
+  "updated_at": "2026-06-23T11:42:01.011Z",
+  "status": "needs-review",
+  "claim": {
+    "summary": "Refactor Receipts into modules + add schema, tests, GitHub adapter, integrity (v0.1)",
+    "details": "Split bin/receipts.js into src/ modules (cli, render-markdown, schema). Added JSON Schema in schemas/, unit tests, receipt schema validation on done, SHA-256 integrity hashing of payload + artifacts, and a 'receipts github comment' adapter using gh with --dry-run. Bumped version to 0.1.0."
+  },
+  "actor": {
+    "type": "agent",
+    "id": "nori",
+    "model": "sakana/fugu"
+  },
+  "task": {
+    "source": "openclaw",
+    "id": null,
+    "url": null
+  },
+  "workspace": {
+    "git_available": true,
+    "repo": "/Users/beauxwalton/projects/receipts",
+    "branch": "master",
+    "commit_before": "cba215b1a459e00403c729c6e46325330ef8eb48",
+    "commit_after": "cba215b1a459e00403c729c6e46325330ef8eb48",
+    "git_status": "M .receipts/active.json\n D .receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log\n D .receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log\n D .receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff\n M .receipts/config.json\n D .receipts/markdown/rcpt_20260623_111623_77cc59.md\n D .receipts/receipts/rcpt_20260623_111623_77cc59.draft.json\n D .receipts/receipts/rcpt_20260623_111623_77cc59.json\n M README.md\n M bin/receipts.js\n M openspec/changes/define-receipts-v0/tasks.md\n M package-lock.json\n M package.json\n M test/smoke.js\n?? .receipts/artifacts/rcpt_20260623_114159_a11c5d/\n?? .receipts/receipts/rcpt_20260623_114159_a11c5d.draft.json\n?? schemas/\n?? src/\n?? test/unit.js",
+    "git_diff_artifact": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/git.diff"
+  },
+  "changes": [
+    {
+      "path": ".receipts/active.json",
+      "kind": "modified",
+      "summary": "M .receipts/active.json"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log",
+      "kind": "deleted",
+      "summary": "D .receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stderr.log"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log",
+      "kind": "deleted",
+      "summary": "D .receipts/artifacts/rcpt_20260623_111623_77cc59/command-001.stdout.log"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff",
+      "kind": "deleted",
+      "summary": "D .receipts/artifacts/rcpt_20260623_111623_77cc59/git.diff"
+    },
+    {
+      "path": ".receipts/config.json",
+      "kind": "modified",
+      "summary": "M .receipts/config.json"
+    },
+    {
+      "path": ".receipts/markdown/rcpt_20260623_111623_77cc59.md",
+      "kind": "deleted",
+      "summary": "D .receipts/markdown/rcpt_20260623_111623_77cc59.md"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_111623_77cc59.draft.json",
+      "kind": "deleted",
+      "summary": "D .receipts/receipts/rcpt_20260623_111623_77cc59.draft.json"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_111623_77cc59.json",
+      "kind": "deleted",
+      "summary": "D .receipts/receipts/rcpt_20260623_111623_77cc59.json"
+    },
+    {
+      "path": "README.md",
+      "kind": "modified",
+      "summary": "M README.md"
+    },
+    {
+      "path": "bin/receipts.js",
+      "kind": "modified",
+      "summary": "M bin/receipts.js"
+    },
+    {
+      "path": "openspec/changes/define-receipts-v0/tasks.md",
+      "kind": "modified",
+      "summary": "M openspec/changes/define-receipts-v0/tasks.md"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "modified",
+      "summary": "M package-lock.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "modified",
+      "summary": "M package.json"
+    },
+    {
+      "path": "test/smoke.js",
+      "kind": "modified",
+      "summary": "M test/smoke.js"
+    },
+    {
+      "path": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/",
+      "kind": "added",
+      "summary": "?? .receipts/artifacts/rcpt_20260623_114159_a11c5d/"
+    },
+    {
+      "path": ".receipts/receipts/rcpt_20260623_114159_a11c5d.draft.json",
+      "kind": "added",
+      "summary": "?? .receipts/receipts/rcpt_20260623_114159_a11c5d.draft.json"
+    },
+    {
+      "path": "schemas/",
+      "kind": "added",
+      "summary": "?? schemas/"
+    },
+    {
+      "path": "src/",
+      "kind": "added",
+      "summary": "?? src/"
+    },
+    {
+      "path": "test/unit.js",
+      "kind": "added",
+      "summary": "?? test/unit.js"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev_001",
+      "kind": "command",
+      "label": "npm test",
+      "command": "npm test",
+      "exit_code": 0,
+      "stdout": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stdout.log",
+      "stderr": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stderr.log",
+      "created_at": "2026-06-23T11:42:00.973Z"
+    },
+    {
+      "id": "ev_002",
+      "kind": "note",
+      "label": "v0.1 verification",
+      "created_at": "2026-06-23T11:42:00.992Z",
+      "note": "Refactor preserves CLI behavior; smoke + unit tests + OpenSpec validation all pass."
+    },
+    {
+      "id": "ev_003",
+      "kind": "git-diff",
+      "label": "Git diff at receipt completion",
+      "path": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/git.diff",
+      "created_at": "2026-06-23T11:42:01.051Z"
+    }
+  ],
+  "verification": {
+    "summary": "1 passed; 2 not run",
+    "checks": [
+      {
+        "kind": "command",
+        "label": "npm test",
+        "status": "passed",
+        "evidence_id": "ev_001",
+        "command": "npm test",
+        "exit_code": 0
+      },
+      {
+        "kind": "manual",
+        "label": "Live GitHub PR comment post",
+        "status": "not-run",
+        "explanation": "Recorded during receipt completion."
+      },
+      {
+        "kind": "manual",
+        "label": "OpenClaw task-completion hook (task 7.3)",
+        "status": "not-run",
+        "explanation": "Recorded during receipt completion."
+      }
+    ]
+  },
+  "risk": {
+    "level": "medium",
+    "notes": [
+      "GitHub adapter not exercised against a live PR in tests (dry-run only)."
+    ],
+    "assumptions": [],
+    "rollback": null
+  },
+  "integrations": {},
+  "recommended_next_action": "Implement OpenClaw task-completion receipt hook (task 7.3), then publish schema/version tag.",
+  "completed_at": "2026-06-23T11:42:01.011Z",
+  "integrity": {
+    "algorithm": "sha256",
+    "receipt_payload_sha256": "68aa7de8e993adf917cae614a5c232cbf7d548c9e59d8afc8f54e6c1f823e631",
+    "artifacts": [
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stdout.log",
+        "sha256": "687494df30eda3ca97c70a4058a7bb9786139221772014f2f9955994de8ff4be"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/command-001.stderr.log",
+        "sha256": "5bc31df123a2e521acdd2c0d9477b367feec506471a91065d0a6b32c09089ed5"
+      },
+      {
+        "path": ".receipts/artifacts/rcpt_20260623_114159_a11c5d/git.diff",
+        "sha256": "58324b7e25211d1883416a426560e4b4cea143bb680e9f3a48d86d662092c5cf"
+      }
+    ]
+  }
+}
